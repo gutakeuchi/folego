@@ -119,7 +119,7 @@ export function AuthScreen({
         >
           <span className="grid size-11 place-items-center rounded-2xl bg-brand-600 text-white">
             <img
-              src={`${import.meta.env.BASE_URL}favicon.svg?v=wind-1`}
+              src={`${import.meta.env.BASE_URL}favicon.svg?v=wind-2`}
               alt=""
               className="size-full rounded-[inherit]"
             />
