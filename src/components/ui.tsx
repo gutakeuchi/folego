@@ -4,8 +4,45 @@ import {
   type ButtonHTMLAttributes,
   type ReactNode,
 } from "react";
-import { X } from "lucide-react";
+import { X, LoaderCircle } from "lucide-react";
 import { cn } from "../lib/cn";
+export function LoadingScreen({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <main className="grid min-h-dvh place-items-center bg-canvas p-6">
+      <div
+        role="status"
+        aria-live="polite"
+        className="screen-enter w-full max-w-sm text-center"
+      >
+        <div className="relative mx-auto mb-7 grid size-24 place-items-center">
+          <span
+            className="absolute inset-0 rounded-full border-4 border-brand-100"
+            aria-hidden="true"
+          />
+          <LoaderCircle
+            className="absolute inset-0 size-24 animate-spin text-brand-600"
+            strokeWidth={1.5}
+            aria-hidden="true"
+          />
+          <span
+            className="grid size-12 place-items-center rounded-2xl bg-brand-50 text-2xl font-extrabold text-brand-600"
+            aria-hidden="true"
+          >
+            F
+          </span>
+        </div>
+        <h1 className="text-xl font-extrabold tracking-tight">{title}</h1>
+        <p className="mt-3 text-sm leading-6 text-slate-500">{description}</p>
+      </div>
+    </main>
+  );
+}
 export function Button({
   variant = "primary",
   className = "",

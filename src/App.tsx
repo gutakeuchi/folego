@@ -44,7 +44,14 @@ import {
   type Goal,
 } from "./model";
 import { AuthScreen } from "./components/AuthScreen";
-import { Button, Card, Empty, Eyebrow, Modal } from "./components/ui";
+import {
+  Button,
+  Card,
+  Empty,
+  Eyebrow,
+  Modal,
+  LoadingScreen,
+} from "./components/ui";
 
 type View = "Início" | "Lançamentos" | "Contas" | "Planejamento" | "Metas";
 const navigation: { name: View; icon: LucideIcon; mobile: string }[] = [
@@ -114,9 +121,10 @@ export default function App() {
   }, []);
   if (loading)
     return (
-      <main className="grid min-h-dvh place-items-center text-sm text-slate-500">
-        Abrindo seu Fôlego…
-      </main>
+      <LoadingScreen
+        title="Abrindo seu Fôlego"
+        description="Só um instante enquanto verificamos sua sessão."
+      />
     );
   if (recovery || (!session && !demo))
     return (
@@ -371,6 +379,13 @@ function FinanceApp({
     error: "Falha de conexão",
     conflict: "Conflito entre aparelhos",
   }[finance.status];
+  if (!finance.ready && !finance.error)
+    return (
+      <LoadingScreen
+        title="Preparando seu espaço"
+        description="Estamos carregando suas contas, lançamentos e metas."
+      />
+    );
   if (!finance.ready)
     return (
       <main className="grid min-h-dvh place-items-center p-6">

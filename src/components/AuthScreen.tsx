@@ -1,5 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { ArrowRight, ShieldCheck, Eye, EyeOff, KeyRound } from "lucide-react";
+import {
+  ArrowRight,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  KeyRound,
+  LoaderCircle,
+} from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { Button, Card } from "./ui";
 export function AuthScreen({
@@ -260,7 +267,15 @@ export function AuthScreen({
                       : mode === "forgot"
                         ? "Enviar instruções"
                         : "Entrar"}
-                <ArrowRight size={18} />
+                {busy ? (
+                  <LoaderCircle
+                    size={18}
+                    className="animate-spin"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <ArrowRight size={18} />
+                )}
               </Button>
               {!recovery && (
                 <div className="flex flex-wrap justify-between gap-3 text-xs font-semibold">
