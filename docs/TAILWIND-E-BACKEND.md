@@ -1,5 +1,7 @@
 # Fôlego v2: Tailwind e backend Supabase
 
+> Para o estado consolidado após as melhorias de interface, publicação e importação OFX, leia o [Guia atual do Fôlego](GUIA-ATUAL-DO-FOLEGO.md). Este documento preserva os detalhes da entrega inicial de Tailwind/backend; referências a hospedagem pendente e à quantidade anterior de testes são históricas.
+
 Esta documentação substitui as descrições de implementação do protótipo v1. O guia anterior continua disponível como registro histórico e introdução aos conceitos; a arquitetura atual está aqui.
 
 ## O que mudou

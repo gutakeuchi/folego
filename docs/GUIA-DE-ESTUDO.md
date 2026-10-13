@@ -1,5 +1,7 @@
 # Fôlego: documentação e guia de estudo
 
+> Comece pelo [Guia atual do Fôlego](GUIA-ATUAL-DO-FOLEGO.md) para estudar a aplicação que está publicada hoje.
+
 > Registro histórico do protótipo v1. O projeto evoluiu para Tailwind e Supabase; veja [a documentação da versão atual](TAILWIND-E-BACKEND.md) antes de seguir exemplos de implementação deste arquivo.
 
 Documentação preparada em 13 de outubro de 2026, a partir do código do repositório `gutakeuchi/folego`. A base examinada foi o commit `da89b72`. Este guia descreve a implementação existente; propostas futuras são identificadas como propostas.
