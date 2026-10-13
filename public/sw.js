@@ -1,4 +1,4 @@
-const CACHE = "folego-shell-v1";
+const CACHE = "folego-shell-v3";
 const ROOT = new URL("./", self.location).href;
 self.addEventListener("install", event => {
   event.waitUntil((async () => {

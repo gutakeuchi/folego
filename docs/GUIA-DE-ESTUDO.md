@@ -1,5 +1,7 @@
 # Fôlego: documentação e guia de estudo
 
+> Registro histórico do protótipo v1. O projeto evoluiu para Tailwind e Supabase; veja [a documentação da versão atual](TAILWIND-E-BACKEND.md) antes de seguir exemplos de implementação deste arquivo.
+
 Documentação preparada em 13 de outubro de 2026, a partir do código do repositório `gutakeuchi/folego`. A base examinada foi o commit `da89b72`. Este guia descreve a implementação existente; propostas futuras são identificadas como propostas.
 
 ## 1. O objetivo do projeto
@@ -10,24 +12,24 @@ O que existe hoje é um frontend funcional com partes demonstrativas e preparaç
 
 Uma tela pode parecer completa sem que todos os seus botões estejam implementados. Por isso, o estado real do produto deve ser entendido antes de estudar o código.
 
-| Recurso | Situação atual |
-| --- | --- |
-| Navegação entre as cinco telas | Funciona por estado React |
-| Cadastro de receita ou despesa | Funciona e altera os totais |
-| Persistência dos lançamentos | Funciona no `localStorage` deste navegador |
-| Busca por descrição/categoria e filtro por tipo | Funcionam |
-| Ocultar valores | Funciona visualmente durante a sessão |
-| Importar e exportar CSV | Funcionam para o formato simples previsto; têm limitações |
-| Contas, cartões, compromissos e orçamento | Exibem exemplos fixos |
-| Metas e aportes | Exibem exemplos; aporte mostra mensagem, sem alterar o valor |
-| Saúde financeira e gráficos históricos | Indicadores demonstrativos, sem cálculo completo |
-| Troca de mês, notificações, perfil e mais ações | Controles visuais sem fluxo completo |
-| Repetir lançamento mensalmente | Checkbox existe; recorrência não é persistida nem executada |
-| PWA | Manifesto e service worker implementados; instalação real ainda precisa de validação |
-| Login, recuperação de acesso, banco e sincronização | Não disponíveis na interface atual |
-| `model.ts` e `useFinance.ts` | Trabalho em andamento, ainda não integrado |
-| Código no GitHub | Publicado na branch `main` |
-| Endereço público do aplicativo | Não publicado nesta etapa |
+| Recurso                                             | Situação atual                                                                       |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Navegação entre as cinco telas                      | Funciona por estado React                                                            |
+| Cadastro de receita ou despesa                      | Funciona e altera os totais                                                          |
+| Persistência dos lançamentos                        | Funciona no `localStorage` deste navegador                                           |
+| Busca por descrição/categoria e filtro por tipo     | Funcionam                                                                            |
+| Ocultar valores                                     | Funciona visualmente durante a sessão                                                |
+| Importar e exportar CSV                             | Funcionam para o formato simples previsto; têm limitações                            |
+| Contas, cartões, compromissos e orçamento           | Exibem exemplos fixos                                                                |
+| Metas e aportes                                     | Exibem exemplos; aporte mostra mensagem, sem alterar o valor                         |
+| Saúde financeira e gráficos históricos              | Indicadores demonstrativos, sem cálculo completo                                     |
+| Troca de mês, notificações, perfil e mais ações     | Controles visuais sem fluxo completo                                                 |
+| Repetir lançamento mensalmente                      | Checkbox existe; recorrência não é persistida nem executada                          |
+| PWA                                                 | Manifesto e service worker implementados; instalação real ainda precisa de validação |
+| Login, recuperação de acesso, banco e sincronização | Não disponíveis na interface atual                                                   |
+| `model.ts` e `useFinance.ts`                        | Trabalho em andamento, ainda não integrado                                           |
+| Código no GitHub                                    | Publicado na branch `main`                                                           |
+| Endereço público do aplicativo                      | Não publicado nesta etapa                                                            |
 
 ## 2. Como o projeto evoluiu
 
@@ -45,16 +47,16 @@ Houve tentativas de publicação pelo Sites, sem implantação confirmada. Um bl
 
 As versões abaixo são as declaradas no `package.json` do projeto, não uma lista das versões mais recentes disponíveis.
 
-| Tecnologia | Versão declarada | Papel no Fôlego |
-| --- | --- | --- |
-| React e React DOM | 19.2.6 | Componentes, atualização da interface e renderização no navegador |
-| TypeScript | 5.9.3 | Verificação de tipos durante o desenvolvimento |
-| Vite | 8.0.13 | Servidor de desenvolvimento e build |
-| Plugin React do Vite | 6.0.2 | Integração da transformação de código React |
-| Lucide React | `^1.31.0` | Ícones SVG usados como componentes |
-| Manrope Variable | `^5.3.0` | Fonte carregada pelo pacote Fontsource |
-| CSS | Sem framework visual | Cores, espaçamento, layout e adaptação mobile |
-| Node.js | Requisito declarado `>=22.13.0` | Executa as ferramentas locais |
+| Tecnologia           | Versão declarada                | Papel no Fôlego                                                   |
+| -------------------- | ------------------------------- | ----------------------------------------------------------------- |
+| React e React DOM    | 19.2.6                          | Componentes, atualização da interface e renderização no navegador |
+| TypeScript           | 5.9.3                           | Verificação de tipos durante o desenvolvimento                    |
+| Vite                 | 8.0.13                          | Servidor de desenvolvimento e build                               |
+| Plugin React do Vite | 6.0.2                           | Integração da transformação de código React                       |
+| Lucide React         | `^1.31.0`                       | Ícones SVG usados como componentes                                |
+| Manrope Variable     | `^5.3.0`                        | Fonte carregada pelo pacote Fontsource                            |
+| CSS                  | Sem framework visual            | Cores, espaçamento, layout e adaptação mobile                     |
+| Node.js              | Requisito declarado `>=22.13.0` | Executa as ferramentas locais                                     |
 
 HTML dá estrutura à página. CSS controla sua apresentação. JavaScript executa a lógica. TypeScript acrescenta informações de tipo ao JavaScript, que são removidas na transformação do código. React organiza a interface em funções chamadas componentes. Vite prepara esses arquivos para o navegador.
 
@@ -139,7 +141,9 @@ O tipo `View` aceita apenas os nomes previstos. Isso ajuda a evitar erros como `
 ### Navegação condicional
 
 ```tsx
-{view === "Contas" && <AccountsView money={money} />}
+{
+  view === "Contas" && <AccountsView money={money} />;
+}
 ```
 
 Essa expressão mostra o componente quando a condição é verdadeira. Não existe uma rota `/contas` implementada. Trocar de tela muda o estado, mas não cria um endereço específico no navegador. Recarregar retorna a navegação ao estado inicial.
@@ -274,11 +278,11 @@ Um service worker executa separado da página e pode interceptar requisições d
 
 O `sw.js` implementa três eventos:
 
-| Evento | Comportamento atual |
-| --- | --- |
-| `install` | Busca o HTML e guarda os assets locais encontrados nele |
-| `activate` | Remove caches antigos do Fôlego com nome diferente |
-| `fetch` | Para navegação, tenta rede e usa o HTML do cache em falha; para assets, tenta cache antes da rede |
+| Evento     | Comportamento atual                                                                               |
+| ---------- | ------------------------------------------------------------------------------------------------- |
+| `install`  | Busca o HTML e guarda os assets locais encontrados nele                                           |
+| `activate` | Remove caches antigos do Fôlego com nome diferente                                                |
+| `fetch`    | Para navegação, tenta rede e usa o HTML do cache em falha; para assets, tenta cache antes da rede |
 
 Requisições que não são GET, de outra origem ou com `/api/` são ignoradas pelo cache. Isso evita tratar respostas de API como arquivos estáticos nessa implementação.
 
@@ -292,13 +296,13 @@ Cache da interface e armazenamento de lançamentos são coisas diferentes. Ter a
 
 `App.tsx` ainda trabalha com o tipo `Transaction`, valores em reais e datas formatadas. `model.ts` propõe outro modelo:
 
-| Tipo | Responsabilidade proposta |
-| --- | --- |
-| `Account` | Identificador, nome e saldo inicial |
-| `Entry` | Receita/despesa com conta relacionada, data ISO e valor em centavos |
-| `Goal` | Objetivo, valor alvo, valor guardado e prazo |
-| `Budget` | Limite de uma categoria |
-| `Finance` | Agrupa as quatro coleções |
+| Tipo      | Responsabilidade proposta                                           |
+| --------- | ------------------------------------------------------------------- |
+| `Account` | Identificador, nome e saldo inicial                                 |
+| `Entry`   | Receita/despesa com conta relacionada, data ISO e valor em centavos |
+| `Goal`    | Objetivo, valor alvo, valor guardado e prazo                        |
+| `Budget`  | Limite de uma categoria                                             |
+| `Finance` | Agrupa as quatro coleções                                           |
 
 Centavos inteiros ajudam a representar operações monetárias com precisão dentro dos limites definidos. Exemplo: R$ 12,34 corresponde a `1234` centavos. Essa convenção precisaria ser aplicada consistentemente à API, ao armazenamento e à apresentação. O saldo inicial também precisa ter sua unidade explicitada, pois seu campo se chama apenas `opening`.
 
@@ -424,39 +428,39 @@ Cada etapa precisa de critério de conclusão observável. Por exemplo, “sincr
 
 Faça cada exercício em uma branch própria e use dados fictícios. As alterações abaixo são sugestões para estudo.
 
-| Ordem | Tema | Exercício | Resultado esperado |
-| --- | --- | --- | --- |
-| 1 | HTML e CSS | Trocar uma cor em `:root` | A mesma cor muda em vários componentes |
-| 2 | JSX e props | Criar um pequeno cartão de resumo | O componente recebe título e valor por props |
-| 3 | Estado | Mostrar contagem dos lançamentos | O contador muda após cadastro |
-| 4 | Arrays | Calcular percentual livre da renda | Indicador acompanha receitas e despesas; renda zero é tratada |
-| 5 | Formulários | Rejeitar data vazia ou inválida | Erro aparece sem fechar o modal |
-| 6 | Persistência | Salvar preferência de ocultar valores | A preferência continua depois de recarregar |
-| 7 | CSV | Testar descrição com vírgula e aspas | Identificar e depois corrigir o limite atual |
-| 8 | Modelagem | Converter reais para centavos | Testar R$ 0,01, R$ 1.234,56 e entradas inválidas |
-| 9 | PWA | Inspecionar instalação e cache | Explicar quais recursos estão realmente disponíveis offline |
-| 10 | Backend | Desenhar contrato de API e isolamento | Explicar por que o servidor não confia no usuário enviado pelo cliente |
+| Ordem | Tema         | Exercício                             | Resultado esperado                                                     |
+| ----- | ------------ | ------------------------------------- | ---------------------------------------------------------------------- |
+| 1     | HTML e CSS   | Trocar uma cor em `:root`             | A mesma cor muda em vários componentes                                 |
+| 2     | JSX e props  | Criar um pequeno cartão de resumo     | O componente recebe título e valor por props                           |
+| 3     | Estado       | Mostrar contagem dos lançamentos      | O contador muda após cadastro                                          |
+| 4     | Arrays       | Calcular percentual livre da renda    | Indicador acompanha receitas e despesas; renda zero é tratada          |
+| 5     | Formulários  | Rejeitar data vazia ou inválida       | Erro aparece sem fechar o modal                                        |
+| 6     | Persistência | Salvar preferência de ocultar valores | A preferência continua depois de recarregar                            |
+| 7     | CSV          | Testar descrição com vírgula e aspas  | Identificar e depois corrigir o limite atual                           |
+| 8     | Modelagem    | Converter reais para centavos         | Testar R$ 0,01, R$ 1.234,56 e entradas inválidas                       |
+| 9     | PWA          | Inspecionar instalação e cache        | Explicar quais recursos estão realmente disponíveis offline            |
+| 10    | Backend      | Desenhar contrato de API e isolamento | Explicar por que o servidor não confia no usuário enviado pelo cliente |
 
 Antes de programar um exercício, escreva o comportamento esperado. Depois compare o resultado com essa expectativa. Isso ajuda a aprender raciocínio de implementação, não apenas sintaxe.
 
 ## 20. Glossário e referências
 
-| Termo | Significado neste projeto |
-| --- | --- |
-| DOM | Estrutura da página que o navegador mantém |
-| Componente | Função que descreve uma parte da interface |
-| Props | Dados e funções enviados do componente pai ao filho |
-| Estado | Informação que o React mantém entre renderizações |
-| Efeito | Sincronização com recursos externos à renderização |
-| Build | Transformação do projeto em arquivos de distribuição |
-| API | Contrato de comunicação entre programas |
-| Autenticação | Identificar quem está acessando |
-| Autorização | Decidir quais dados e operações essa pessoa pode acessar |
-| Persistência | Manter dados depois de encerrar a execução atual |
-| Cache | Cópia reutilizável de um recurso |
-| PWA | Aplicação web com capacidades progressivas de app |
-| Commit | Versão registrada no Git |
-| Deploy | Publicação de uma versão em um ambiente acessível |
+| Termo        | Significado neste projeto                                |
+| ------------ | -------------------------------------------------------- |
+| DOM          | Estrutura da página que o navegador mantém               |
+| Componente   | Função que descreve uma parte da interface               |
+| Props        | Dados e funções enviados do componente pai ao filho      |
+| Estado       | Informação que o React mantém entre renderizações        |
+| Efeito       | Sincronização com recursos externos à renderização       |
+| Build        | Transformação do projeto em arquivos de distribuição     |
+| API          | Contrato de comunicação entre programas                  |
+| Autenticação | Identificar quem está acessando                          |
+| Autorização  | Decidir quais dados e operações essa pessoa pode acessar |
+| Persistência | Manter dados depois de encerrar a execução atual         |
+| Cache        | Cópia reutilizável de um recurso                         |
+| PWA          | Aplicação web com capacidades progressivas de app        |
+| Commit       | Versão registrada no Git                                 |
+| Deploy       | Publicação de uma versão em um ambiente acessível        |
 
 Leituras oficiais para aprofundamento:
 

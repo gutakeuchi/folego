@@ -1,576 +1,1391 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import type { Session } from "@supabase/supabase-js";
 import {
   ArrowDownLeft,
   ArrowUpRight,
-  Bell,
-  CalendarDays,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  CircleDollarSign,
-  CreditCard,
   Download,
   Eye,
   EyeOff,
   Home,
-  Landmark,
   LayoutGrid,
-  ListFilter,
-  ListTree,
-  MoreHorizontal,
-  PiggyBank,
+  LogOut,
+  Pencil,
   Plus,
   ReceiptText,
+  RefreshCw,
   Search,
   ShieldCheck,
-  Sparkles,
   Target,
-  TrendingUp,
+  Trash2,
   Upload,
   WalletCards,
-  X,
   type LucideIcon,
 } from "lucide-react";
+import { supabase } from "./lib/supabase";
+import { useFinance } from "./useFinance";
+import {
+  exportEntries,
+  id,
+  importEntries,
+  migrateLegacy,
+  moneyInput,
+  parseMoney,
+  today,
+  totals,
+  validDate,
+  validateFinance,
+  type Account,
+  type Budget,
+  type Entry,
+  type Goal,
+} from "./model";
+import { AuthScreen } from "./components/AuthScreen";
+import { Button, Card, Empty, Eyebrow, Modal } from "./components/ui";
 
 type View = "Início" | "Lançamentos" | "Contas" | "Planejamento" | "Metas";
-type Transaction = {
-  id: number;
-  title: string;
-  category: string;
-  date: string;
-  amount: number;
-  type: "income" | "expense";
-  account: string;
+const navigation: { name: View; icon: LucideIcon; mobile: string }[] = [
+  { name: "Início", icon: Home, mobile: "Início" },
+  { name: "Lançamentos", icon: ReceiptText, mobile: "Extrato" },
+  { name: "Contas", icon: WalletCards, mobile: "Contas" },
+  { name: "Planejamento", icon: LayoutGrid, mobile: "Planejar" },
+  { name: "Metas", icon: Target, mobile: "Metas" },
+];
+type Editor = {
+  kind: "entry" | "account" | "budget" | "goal" | "contribution";
+  entry?: Entry;
+  account?: Account;
+  budget?: Budget;
+  goal?: Goal;
 };
-
-const initialTransactions: Transaction[] = [
-  { id: 1, title: "Salário", category: "Renda", date: "05 out", amount: 4850, type: "income", account: "Conta principal" },
-  { id: 2, title: "Supermercado", category: "Alimentação", date: "08 out", amount: 387.45, type: "expense", account: "Cartão principal" },
-  { id: 3, title: "Aluguel", category: "Moradia", date: "07 out", amount: 1450, type: "expense", account: "Conta principal" },
-  { id: 4, title: "Internet", category: "Contas", date: "06 out", amount: 119.9, type: "expense", account: "Conta principal" },
-  { id: 5, title: "Freelance", category: "Renda extra", date: "03 out", amount: 650, type: "income", account: "Conta principal" },
+const categories = [
+  "Alimentação",
+  "Moradia",
+  "Transporte",
+  "Saúde",
+  "Lazer",
+  "Contas",
+  "Renda",
+  "Outros",
 ];
-
-const navigation = [
-  { name: "Início" as View, icon: Home },
-  { name: "Lançamentos" as View, icon: ReceiptText },
-  { name: "Contas" as View, icon: WalletCards },
-  { name: "Planejamento" as View, icon: LayoutGrid },
-  { name: "Metas" as View, icon: Target },
-];
-
-const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-
+const currency = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
 export default function App() {
-  const [view, setView] = useState<View>("Início");
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    try {
-      const saved = localStorage.getItem("folego.transactions.v1");
-      if (!saved) return initialTransactions;
-      const parsed: unknown = JSON.parse(saved);
-      if (!Array.isArray(parsed) || !parsed.every((item) => item && typeof item.id === "number" && typeof item.title === "string" && typeof item.category === "string" && typeof item.date === "string" && typeof item.account === "string" && Number.isFinite(item.amount) && item.amount > 0 && ["income", "expense"].includes(item.type))) return initialTransactions;
-      return parsed;
-    } catch { return initialTransactions; }
-  });
-  const [hideValues, setHideValues] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const [toast, setToast] = useState("");
-  const [form, setForm] = useState({
-    title: "",
-    amount: "",
-    category: "Alimentação",
-    type: "expense" as "income" | "expense",
-    account: "Conta principal",
-    date: "2026-10-09",
-    recurring: false,
-  });
-  const [formError, setFormError] = useState("");
-  const fileInput = useRef<HTMLInputElement>(null);
-
+  const [session, setSession] = useState<Session | null>(null),
+    [loading, setLoading] = useState(!!supabase),
+    [demo, setDemo] = useState(false),
+    [recovery, setRecovery] = useState(
+      new URLSearchParams(location.search).has("recovery"),
+    );
+  const [authError, setAuthError] = useState("");
   useEffect(() => {
-    try { localStorage.setItem("folego.transactions.v1", JSON.stringify(transactions)); }
-    catch { setToast("Não foi possível salvar neste dispositivo. Exporte seus lançamentos para guardar uma cópia."); }
-  }, [transactions]);
-
-  const income = transactions.filter((item) => item.type === "income").reduce((sum, item) => sum + item.amount, 0);
-  const expenses = transactions.filter((item) => item.type === "expense").reduce((sum, item) => sum + item.amount, 0);
-  const balance = income - expenses;
-  const money = (value: number) => (hideValues ? "R$ •••••" : currency.format(value));
-  const filteredTransactions = useMemo(
-    () =>
-      transactions.filter(
-        (item) =>
-          (item.title + item.category).toLowerCase().includes(query.toLowerCase()) &&
-          (!typeFilter || item.type === typeFilter),
-      ),
-    [transactions, query, typeFilter],
-  );
-
-  function showToast(message: string) {
-    setToast(message);
-    window.setTimeout(() => setToast(""), 2400);
-  }
-
-  function submitTransaction(event: FormEvent) {
-    event.preventDefault();
-    const amount = Number(form.amount.replace(/\./g, "").replace(",", "."));
-    if (!form.title.trim()) {
-      setFormError("Digite uma descrição para o lançamento.");
-      return;
-    }
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setFormError("Informe um valor maior que zero.");
-      return;
-    }
-    const date = new Date(form.date + "T12:00:00")
-      .toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
-      .replace(".", "");
-    setTransactions((current) => [
-      {
-        id: Date.now(),
-        title: form.title.trim(),
-        category: form.category,
-        date,
-        amount,
-        type: form.type,
-        account: form.account,
-      },
-      ...current,
-    ]);
-    setForm({ title: "", amount: "", category: "Alimentação", type: "expense", account: "Conta principal", date: "2026-10-09", recurring: false });
-    setFormError("");
-    setDialogOpen(false);
-    showToast("Lançamento adicionado com sucesso");
-  }
-
-  function exportCsv() {
-    const rows = [
-      "Descrição,Categoria,Data,Tipo,Conta,Valor",
-      ...transactions.map((item) => [item.title, item.category, item.date, item.type, item.account, item.amount].join(",")),
-    ];
-    const anchor = document.createElement("a");
-    anchor.href = URL.createObjectURL(new Blob([rows.join("\n")], { type: "text/csv" }));
-    anchor.download = "lancamentos-folego.csv";
-    anchor.click();
-    showToast("Arquivo CSV exportado");
-  }
-
-  function importCsv(file?: File) {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const rows = String(reader.result).split(/\r?\n/).slice(1).filter(Boolean);
-      let imported = 0;
-      const additions: Transaction[] = [];
-      rows.forEach((line, index) => {
-        const [title, category, date, type, account, rawAmount] = line.split(",").map((value) => value.trim());
-        const amount = Number(rawAmount?.replace(",", "."));
-        if (title && Number.isFinite(amount) && amount > 0) {
-          additions.push({
-            id: Date.now() + index,
-            title,
-            category: category || "Outros",
-            date: date || "Hoje",
-            type: type === "income" ? "income" : "expense",
-            account: account || "Conta principal",
-            amount,
-          });
-          imported += 1;
+    if (!supabase) return;
+    let active = true;
+    void supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (active) {
+          setSession(data.session);
+          setLoading(false);
+          if (error) setAuthError(error.message);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setLoading(false);
+          setAuthError("Falha ao verificar sua sessão.");
         }
       });
-      setTransactions((current) => [...additions, ...current]);
-      showToast(imported ? `${imported} lançamento(s) importado(s)` : "Nenhum lançamento válido encontrado");
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, next) => {
+      setSession(next);
+      if (event === "PASSWORD_RECOVERY") setRecovery(true);
+    });
+    return () => {
+      active = false;
+      subscription.unsubscribe();
     };
-    reader.readAsText(file, "utf-8");
-  }
-
-  useEffect(() => {
-    const context = (
-      document as Document & {
-        modelContext?: {
-          registerTool: (tool: unknown, options?: { signal?: AbortSignal }) => void | Promise<void>;
-        };
-      }
-    ).modelContext;
-    if (!context?.registerTool) return;
-    const controller = new AbortController();
-    void context.registerTool(
-      {
-        name: "add_financial_transaction",
-        title: "Adicionar lançamento financeiro",
-        description: "Adiciona uma receita ou despesa ao painel financeiro visível.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            description: { type: "string" },
-            category: { type: "string" },
-            amount: { type: "number" },
-            type: { enum: ["income", "expense"] },
-          },
-          required: ["description", "category", "amount", "type"],
-          additionalProperties: false,
-        },
-        annotations: { readOnlyHint: false, untrustedContentHint: false },
-        execute(input: unknown) {
-          const data = input as { description: string; category: string; amount: number; type: "income" | "expense" };
-          if (!data.description || !Number.isFinite(data.amount) || data.amount <= 0) throw new Error("Dados inválidos");
-          setTransactions((current) => [
-            { id: Date.now(), title: data.description, category: data.category, amount: data.amount, type: data.type, date: "Hoje", account: "Conta principal" },
-            ...current,
-          ]);
-          return { status: "adicionado", description: data.description, amount: data.amount };
-        },
-      },
-      { signal: controller.signal },
-    );
-    return () => controller.abort();
   }, []);
-
+  if (loading)
+    return (
+      <main className="grid min-h-dvh place-items-center text-sm text-slate-500">
+        Abrindo seu Fôlego…
+      </main>
+    );
+  if (recovery || (!session && !demo))
+    return (
+      <>
+        <AuthScreen
+          recovery={recovery}
+          onRecovered={() => {
+            setRecovery(false);
+            history.replaceState(null, "", location.pathname);
+          }}
+          onDemo={() => setDemo(true)}
+        />
+        {authError && (
+          <p role="alert" className="p-4 text-center text-sm text-red-700">
+            {authError}
+          </p>
+        )}
+      </>
+    );
   return (
-    <div className="app-shell">
-      <Sidebar active={view} onNavigate={setView} />
-      <div className="app-main">
-        <AppHeader active={view} hidden={hideValues} onToggleHidden={() => setHideValues((value) => !value)} />
-        <main className="page">
+    <FinanceApp
+      key={session?.user.id ?? "demo"}
+      userId={session?.user.id ?? null}
+      name={
+        session?.user.user_metadata?.display_name ||
+        session?.user.email?.split("@")[0] ||
+        "você"
+      }
+      onExit={async () => {
+        if (session && supabase) {
+          const { error } = await supabase.auth.signOut();
+          if (error) throw error;
+        }
+        setDemo(false);
+      }}
+    />
+  );
+}
+
+function FinanceApp({
+  userId,
+  name,
+  onExit,
+}: {
+  userId: string | null;
+  name: string;
+  onExit: () => Promise<void>;
+}) {
+  const finance = useFinance(userId);
+  const { data, update } = finance;
+  const [view, setView] = useState<View>("Início"),
+    [month, setMonth] = useState(today().slice(0, 7)),
+    [hidden, setHidden] = useState(false),
+    [query, setQuery] = useState(""),
+    [filter, setFilter] = useState("");
+  const [editor, setEditor] = useState<Editor | null>(null),
+    [toast, setToast] = useState(""),
+    [error, setError] = useState(""),
+    [confirm, setConfirm] = useState<{
+      title: string;
+      action: () => void;
+    } | null>(null);
+  const csvInput = useRef<HTMLInputElement>(null),
+    backupInput = useRef<HTMLInputElement>(null);
+  const monthly = data.entries.filter((e) => e.date.startsWith(month));
+  const summary = totals(monthly);
+  const balance =
+    data.accounts.reduce((s, a) => s + a.opening, 0) +
+    totals(data.entries).balance;
+  const money = (cents: number) =>
+    hidden ? "R$ •••••" : currency.format(cents / 100);
+  const monthLabel = new Date(month + "-15T12:00:00").toLocaleDateString(
+    "pt-BR",
+    { month: "long", year: "numeric" },
+  );
+  const visible = monthly
+    .filter(
+      (e) =>
+        (e.title + " " + e.category)
+          .toLocaleLowerCase()
+          .includes(query.toLocaleLowerCase()) &&
+        (!filter || e.type === filter),
+    )
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const budgetTotal = data.budgets.reduce((s, b) => s + b.limit, 0);
+  const spent = (category: string) =>
+    monthly
+      .filter(
+        (e) =>
+          e.type === "expense" &&
+          e.category.toLocaleLowerCase() === category.toLocaleLowerCase(),
+      )
+      .reduce((s, e) => s + e.cents, 0);
+  function notify(text: string) {
+    setToast(text);
+  }
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(""), 3500);
+    return () => clearTimeout(timer);
+  }, [toast]);
+  function act(fn: () => void) {
+    setError("");
+    try {
+      fn();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Não foi possível concluir.");
+    }
+  }
+  function changeMonth(offset: number) {
+    const d = new Date(month + "-15T12:00:00");
+    d.setMonth(d.getMonth() + offset);
+    setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  }
+  function download(content: string, type: string, filename: string) {
+    const url = URL.createObjectURL(new Blob([content], { type }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function backup() {
+    download(
+      JSON.stringify({ version: 3, data }, null, 2),
+      "application/json",
+      "folego-backup.json",
+    );
+  }
+  function legacyImport() {
+    act(() => {
+      const raw = localStorage.getItem("folego.transactions.v1");
+      if (!raw)
+        throw new Error(
+          "Nenhum registro antigo encontrado nesta origem do navegador. Abra a nova versão no mesmo endereço usado anteriormente.",
+        );
+      const legacy = JSON.parse(raw);
+      const year = Number(today().slice(0, 4));
+      const preview = migrateLegacy(legacy, year, data);
+      const count = preview.entries.length - data.entries.length;
+      setConfirm({
+        title: `Importar ${count} lançamento(s) da versão antiga ${userId ? "para esta conta sincronizada" : "para a demonstração"}? Datas sem ano serão interpretadas como ${year}. Os dados antigos serão mantidos.`,
+        action: () => {
+          act(() => {
+            update((d) => migrateLegacy(legacy, year, d));
+            notify("Registros antigos importados.");
+          });
+        },
+      });
+    });
+  }
+  async function readFile(file: File | undefined, kind: "csv" | "backup") {
+    if (!file) return;
+    setError("");
+    try {
+      if (file.size > 5_000_000) throw new Error("Use um arquivo de até 5 MB.");
+      const text = await file.text();
+      if (kind === "csv") {
+        update((d) => importEntries(text, d));
+        notify("CSV importado. IDs existentes foram ignorados.");
+      } else {
+        const parsed = JSON.parse(text);
+        if (parsed.version !== 3 || !validateFinance(parsed.data))
+          throw new Error("Backup inválido ou de versão incompatível.");
+        setConfirm({
+          title:
+            "Substituir os registros atuais pelo backup? Exporte uma cópia antes.",
+          action: () => {
+            update(() => parsed.data);
+            notify("Backup restaurado.");
+          },
+        });
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Arquivo inválido.");
+    }
+  }
+  function generateRecurring() {
+    let count = 0;
+    update((d) => {
+      const next = structuredClone(d);
+      const templates = new Map<string, Entry>();
+      d.entries
+        .filter((e) => e.recurring && e.date.slice(0, 7) < month)
+        .forEach((e) => {
+          const key = [e.title, e.category, e.accountId, e.type, e.cents].join(
+            "|",
+          );
+          if (!templates.has(key) || templates.get(key)!.date < e.date)
+            templates.set(key, e);
+        });
+      templates.forEach((e) => {
+        const last = new Date(
+          Number(month.slice(0, 4)),
+          Number(month.slice(5, 7)),
+          0,
+        ).getDate();
+        const date =
+          month +
+          "-" +
+          String(Math.min(Number(e.date.slice(8)), last)).padStart(2, "0");
+        if (
+          next.entries.some(
+            (x) =>
+              x.title === e.title &&
+              x.accountId === e.accountId &&
+              x.type === e.type &&
+              x.cents === e.cents &&
+              x.date === date,
+          )
+        )
+          return;
+        next.entries.push({ ...e, id: id(), date });
+        count++;
+      });
+      return next;
+    });
+    notify(
+      count
+        ? `${count} recorrência(s) criada(s) no mês.`
+        : "Nenhuma recorrência pendente de meses anteriores.",
+    );
+  }
+  const statusText = {
+    loading: "Carregando",
+    local: "Demonstração • dados locais",
+    synced: "Sincronizado",
+    pending: "Alterações pendentes",
+    saving: "Salvando",
+    error: "Falha de conexão",
+    conflict: "Conflito entre aparelhos",
+  }[finance.status];
+  if (!finance.ready)
+    return (
+      <main className="grid min-h-dvh place-items-center p-6">
+        <Card>
+          <h1 className="font-bold">{statusText}</h1>
+          {finance.error && (
+            <p role="alert" className="mt-3 text-sm text-red-700">
+              {finance.error}
+            </p>
+          )}
+          <Button
+            variant="secondary"
+            className="mt-4"
+            onClick={() => location.reload()}
+          >
+            Tentar novamente
+          </Button>
+        </Card>
+      </main>
+    );
+  const entryRows = (entries: Entry[]) =>
+    entries.length ? (
+      entries.map((e) => (
+        <article
+          key={e.id}
+          className="flex min-w-0 items-center gap-3 border-t border-slate-100 py-4 first:border-0"
+        >
+          <span
+            className={`grid size-11 shrink-0 place-items-center rounded-xl ${e.type === "income" ? "bg-brand-50 text-brand-600" : "bg-orange-50 text-orange-600"}`}
+          >
+            {e.type === "income" ? (
+              <ArrowDownLeft size={22} />
+            ) : (
+              <ArrowUpRight size={22} />
+            )}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-extrabold">{e.title}</p>
+            <p className="mt-1 truncate text-xs text-slate-400">
+              {new Date(e.date + "T12:00:00").toLocaleDateString("pt-BR")} ·{" "}
+              {e.category}
+            </p>
+          </div>
+          <strong
+            className={`shrink-0 text-xs tabular-nums sm:text-sm ${e.type === "income" ? "text-brand-600" : ""}`}
+          >
+            {e.type === "income" ? "+" : "−"} {money(e.cents)}
+          </strong>
+          <button
+            aria-label={`Editar ${e.title}`}
+            onClick={() => setEditor({ kind: "entry", entry: e })}
+            className="grid size-11 shrink-0 place-items-center rounded-xl text-slate-400 hover:bg-slate-50"
+          >
+            <Pencil size={18} />
+          </button>
+        </article>
+      ))
+    ) : (
+      <Empty>
+        Você ainda não tem lançamentos neste período.
+        <br />
+        Use o botão + para começar.
+      </Empty>
+    );
+  return (
+    <div className="min-h-dvh">
+      <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col bg-brand-950 p-5 text-white lg:flex">
+        <div className="mb-10 flex items-center gap-3 px-2 text-2xl font-extrabold">
+          <span className="grid size-10 place-items-center rounded-xl bg-brand-500">
+            F
+          </span>
+          Fôlego
+        </div>
+        <nav aria-label="Navegação principal" className="space-y-2">
+          {navigation.map(({ name, icon: Icon }) => (
+            <button
+              key={name}
+              aria-current={view === name ? "page" : undefined}
+              onClick={() => setView(name)}
+              className={`flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-sm font-bold ${view === name ? "bg-white/12 text-white" : "text-emerald-100/60 hover:bg-white/5"}`}
+            >
+              <Icon size={21} />
+              {name}
+            </button>
+          ))}
+        </nav>
+        <div className="mt-auto rounded-2xl border border-white/10 p-4">
+          <p className="text-xs text-emerald-200/60">Sua conta</p>
+          <p className="mt-1 truncate text-sm font-bold">{name}</p>
+          <button
+            className="mt-4 flex items-center gap-2 text-xs text-emerald-100/70"
+            onClick={() => void onExit().catch((e) => setError(String(e)))}
+          >
+            <LogOut size={16} />
+            {userId ? "Sair da conta" : "Sair da demonstração"}
+          </button>
+        </div>
+      </aside>
+      <div className="lg:pl-60">
+        <header className="sticky top-0 z-20 flex h-20 items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-8">
+          <div>
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              {userId ? "SEU ESPAÇO FINANCEIRO" : "DEMONSTRAÇÃO LOCAL"}
+            </p>
+            <h1 className="mt-1 text-xl font-extrabold tracking-tight">
+              {view}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              aria-label={hidden ? "Mostrar valores" : "Ocultar valores"}
+              aria-pressed={hidden}
+              onClick={() => setHidden((v) => !v)}
+              className="grid size-12 place-items-center rounded-xl border border-slate-200 text-slate-500"
+            >
+              {hidden ? <Eye size={22} /> : <EyeOff size={22} />}
+            </button>
+            <button
+              aria-label={userId ? "Sair da conta" : "Sair da demonstração"}
+              onClick={() => void onExit().catch((e) => setError(String(e)))}
+              className="grid size-12 place-items-center rounded-xl border border-slate-200 text-slate-500 lg:hidden"
+            >
+              <LogOut size={22} />
+            </button>
+          </div>
+        </header>
+        <main className="mx-auto max-w-7xl space-y-5 px-3 pt-5 pb-32 sm:px-8 lg:pb-12">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                aria-label="Mês anterior"
+                onClick={() => changeMonth(-1)}
+                className="grid size-11 place-items-center rounded-xl bg-white"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <p className="min-w-40 text-center text-sm font-bold capitalize">
+                {monthLabel}
+              </p>
+              <button
+                aria-label="Próximo mês"
+                onClick={() => changeMonth(1)}
+                className="grid size-11 place-items-center rounded-xl bg-white"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+            <Button
+              onClick={() => setEditor({ kind: "entry" })}
+              className="hidden sm:inline-flex"
+            >
+              <Plus size={19} />
+              Adicionar lançamento
+            </Button>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+            <span role="status">{statusText}</span>
+            <div className="flex items-center gap-3">
+              <button onClick={legacyImport} className="min-h-10 font-semibold">
+                Importar versão antiga
+              </button>
+              {userId && (
+                <button
+                  onClick={finance.retry}
+                  className="flex min-h-10 items-center gap-2 font-semibold"
+                >
+                  <RefreshCw size={14} />
+                  Sincronizar
+                </button>
+              )}
+            </div>
+          </div>
+          {(error || finance.error) && (
+            <p
+              role="alert"
+              className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+            >
+              {error || finance.error}
+            </p>
+          )}
+          {finance.status === "conflict" && (
+            <Card>
+              <h2 className="font-bold">
+                Há alterações feitas em outro aparelho
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Suas alterações locais foram preservadas. Exporte um backup
+                antes de carregar a versão salva no servidor.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Button onClick={backup}>Exportar minha cópia</Button>
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    setConfirm({
+                      title:
+                        "Descartar alterações locais e carregar os registros do servidor?",
+                      action: () => {
+                        void finance
+                          .reloadRemote()
+                          .catch((e) => setError(String(e)));
+                      },
+                    })
+                  }
+                >
+                  Carregar do servidor
+                </Button>
+              </div>
+            </Card>
+          )}
           {view === "Início" && (
-            <HomeView
-              balance={balance}
-              income={income}
-              expenses={expenses}
-              money={money}
-              transactions={transactions}
-              onNavigate={setView}
-              onAdd={() => setDialogOpen(true)}
-              hidden={hideValues}
-              onToggleHidden={() => setHideValues((value) => !value)}
-            />
+            <>
+              <section className="flex items-start justify-between gap-4 rounded-3xl bg-linear-to-br from-brand-950 to-brand-700 p-6 text-white sm:p-8">
+                <div>
+                  <p className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-200">
+                    UM PASSO DE CADA VEZ
+                  </p>
+                  <h2 className="mt-3 text-2xl font-extrabold tracking-tight">
+                    Olá, {name}
+                  </h2>
+                  <p className="mt-2 max-w-lg text-sm leading-6 text-emerald-100/80">
+                    {monthly.length
+                      ? "Seu mês está aqui. Acompanhe os registros e ajuste os próximos passos."
+                      : "Seu controle começa com o primeiro lançamento."}
+                  </p>
+                </div>
+                <ShieldCheck size={32} className="shrink-0 text-emerald-200" />
+              </section>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Metric label="Saldo das contas" value={money(balance)} large />
+                <Card>
+                  <Eyebrow>RESUMO DO PERÍODO</Eyebrow>
+                  <div className="mt-5 grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-slate-400">Receitas</p>
+                      <p className="mt-2 text-lg font-extrabold text-brand-600">
+                        {money(summary.income)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Despesas</p>
+                      <p className="mt-2 text-lg font-extrabold">
+                        {money(summary.expense)}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="mt-5 border-t border-slate-100 pt-4 text-xs text-slate-500">
+                    {summary.income > 0
+                      ? `${Math.round((summary.balance / summary.income) * 100)}% da renda do período disponível`
+                      : "Cadastre receitas para calcular sua margem do mês."}
+                  </p>
+                </Card>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {navigation
+                  .filter((n) => n.name !== "Início")
+                  .map(({ name, icon: Icon }) => (
+                    <button
+                      key={name}
+                      onClick={() => setView(name)}
+                      className="flex min-h-20 items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left text-xs font-extrabold shadow-card"
+                    >
+                      <Icon size={23} className="shrink-0 text-brand-600" />
+                      {name}
+                    </button>
+                  ))}
+              </div>
+              <div className="grid items-start gap-5 xl:grid-cols-2">
+                <Card>
+                  <div className="mb-4 flex items-center justify-between">
+                    <h2 className="font-extrabold">Atividade recente</h2>
+                    <button
+                      onClick={() => setView("Lançamentos")}
+                      className="min-h-11 text-xs font-bold text-brand-600"
+                    >
+                      Ver extrato
+                    </button>
+                  </div>
+                  {entryRows(
+                    [...monthly]
+                      .sort((a, b) => b.date.localeCompare(a.date))
+                      .slice(0, 5),
+                  )}
+                </Card>
+                <Card>
+                  <h2 className="mb-5 font-extrabold">Limites por categoria</h2>
+                  {data.budgets.length ? (
+                    data.budgets.map((b) => (
+                      <BudgetLine
+                        key={b.id}
+                        budget={b}
+                        spent={spent(b.category)}
+                        money={money}
+                        onEdit={() => setEditor({ kind: "budget", budget: b })}
+                      />
+                    ))
+                  ) : (
+                    <Empty>
+                      Defina um limite em Planejamento para acompanhar seus
+                      gastos.
+                    </Empty>
+                  )}
+                </Card>
+              </div>
+            </>
           )}
           {view === "Lançamentos" && (
-            <TransactionsView
-              transactions={filteredTransactions}
-              income={income}
-              expenses={expenses}
-              money={money}
-              query={query}
-              typeFilter={typeFilter}
-              onQuery={setQuery}
-              onTypeFilter={setTypeFilter}
-              onAdd={() => setDialogOpen(true)}
-              onExport={exportCsv}
-              onImport={() => fileInput.current?.click()}
-            />
+            <>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                <Metric label="Entradas" value={money(summary.income)} />
+                <Metric label="Saídas" value={money(summary.expense)} />
+                <Metric
+                  label="Saldo do período"
+                  value={money(summary.balance)}
+                  className="col-span-2 md:col-span-1"
+                />
+              </div>
+              <Card>
+                <div className="mb-3 flex flex-wrap gap-2">
+                  <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 px-3">
+                    <Search size={18} className="shrink-0 text-slate-400" />
+                    <input
+                      aria-label="Buscar lançamento"
+                      placeholder="Buscar lançamento"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      className="min-h-12 w-full bg-transparent text-sm outline-none"
+                    />
+                  </label>
+                  <select
+                    aria-label="Filtrar por tipo"
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value)}
+                    className="field max-w-32"
+                  >
+                    <option value="">Todos</option>
+                    <option value="income">Receitas</option>
+                    <option value="expense">Despesas</option>
+                  </select>
+                </div>
+                <div className="mb-3 flex flex-wrap gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => csvInput.current?.click()}
+                  >
+                    <Upload size={17} />
+                    Importar
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      download(
+                        exportEntries(data),
+                        "text/csv;charset=utf-8",
+                        "folego-lancamentos.csv",
+                      )
+                    }
+                  >
+                    <Download size={17} />
+                    Exportar
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => act(generateRecurring)}
+                  >
+                    <RefreshCw size={17} />
+                    Gerar recorrências
+                  </Button>
+                </div>
+                {entryRows(visible)}
+              </Card>
+            </>
           )}
-          {view === "Contas" && <AccountsView money={money} />}
-          {view === "Planejamento" && <PlanningView money={money} />}
-          {view === "Metas" && <GoalsView money={money} onToast={showToast} />}
+          {view === "Contas" && (
+            <>
+              <div className="flex items-center justify-between">
+                <h2 className="font-extrabold">Suas contas</h2>
+                <Button onClick={() => setEditor({ kind: "account" })}>
+                  <Plus size={18} />
+                  Nova conta
+                </Button>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {data.accounts.map((a) => (
+                  <Card key={a.id}>
+                    <div className="flex items-center justify-between">
+                      <WalletCards size={24} className="text-brand-600" />
+                      <button
+                        aria-label={`Editar conta ${a.name}`}
+                        onClick={() =>
+                          setEditor({ kind: "account", account: a })
+                        }
+                        className="grid size-11 place-items-center rounded-xl hover:bg-slate-50"
+                      >
+                        <Pencil size={17} />
+                      </button>
+                    </div>
+                    <h3 className="mt-3 font-bold">{a.name}</h3>
+                    <p className="mt-3 text-2xl font-extrabold tabular-nums">
+                      {money(
+                        a.opening +
+                          totals(
+                            data.entries.filter((e) => e.accountId === a.id),
+                          ).balance,
+                      )}
+                    </p>
+                    <p className="mt-2 text-xs text-slate-400">
+                      Saldo inicial + todos os lançamentos desta conta
+                    </p>
+                  </Card>
+                ))}
+              </div>
+              <Card>
+                <h2 className="font-extrabold">Seus dados</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Mantenha uma cópia dos registros. Um backup inclui contas,
+                  lançamentos, limites e metas.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Button variant="secondary" onClick={backup}>
+                    <Download size={18} />
+                    Backup completo
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => backupInput.current?.click()}
+                  >
+                    <Upload size={18} />
+                    Restaurar backup
+                  </Button>
+                </div>
+              </Card>
+            </>
+          )}
+          {view === "Planejamento" && (
+            <>
+              <div className="flex items-center justify-between">
+                <h2 className="font-extrabold">Orçamento do mês</h2>
+                <Button onClick={() => setEditor({ kind: "budget" })}>
+                  <Plus size={18} />
+                  Novo limite
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Metric
+                  label="Limites cadastrados"
+                  value={money(budgetTotal)}
+                />
+                <Metric
+                  label="Gasto do período"
+                  value={money(summary.expense)}
+                />
+              </div>
+              <Card>
+                {data.budgets.length ? (
+                  data.budgets.map((b) => (
+                    <BudgetLine
+                      key={b.id}
+                      budget={b}
+                      spent={spent(b.category)}
+                      money={money}
+                      onEdit={() => setEditor({ kind: "budget", budget: b })}
+                    />
+                  ))
+                ) : (
+                  <Empty>Crie seu primeiro limite por categoria.</Empty>
+                )}
+              </Card>
+              <p className="text-xs leading-5 text-slate-500">
+                Os limites são mensais e se repetem nos períodos selecionados. O
+                gasto considera a categoria de cada despesa.
+              </p>
+            </>
+          )}
+          {view === "Metas" && (
+            <>
+              <div className="flex items-center justify-between">
+                <h2 className="font-extrabold">Seus próximos passos</h2>
+                <Button onClick={() => setEditor({ kind: "goal" })}>
+                  <Plus size={18} />
+                  Criar meta
+                </Button>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {data.goals.map((g) => (
+                  <Card key={g.id}>
+                    <div className="flex items-center justify-between">
+                      <span className="grid size-12 place-items-center rounded-2xl bg-brand-50 text-brand-600">
+                        <Target size={24} />
+                      </span>
+                      <button
+                        aria-label={`Editar meta ${g.name}`}
+                        onClick={() => setEditor({ kind: "goal", goal: g })}
+                        className="grid size-11 place-items-center rounded-xl hover:bg-slate-50"
+                      >
+                        <Pencil size={17} />
+                      </button>
+                    </div>
+                    <h3 className="mt-5 text-lg font-extrabold">{g.name}</h3>
+                    <p className="mt-3 text-2xl font-extrabold">
+                      {money(g.saved)}
+                    </p>
+                    <p className="mt-2 text-xs text-slate-400">
+                      de {money(g.target)} · até{" "}
+                      {new Date(g.deadline + "T12:00:00").toLocaleDateString(
+                        "pt-BR",
+                      )}
+                    </p>
+                    <Progress value={(g.saved / g.target) * 100} />
+                    <Button
+                      variant="secondary"
+                      className="mt-5 w-full"
+                      onClick={() =>
+                        setEditor({ kind: "contribution", goal: g })
+                      }
+                    >
+                      Registrar aporte
+                    </Button>
+                  </Card>
+                ))}
+              </div>
+              {!data.goals.length && (
+                <Card>
+                  <Empty>Crie uma meta para acompanhar seu progresso.</Empty>
+                </Card>
+              )}
+              <p className="text-xs leading-5 text-slate-500">
+                Aportes atualizam o progresso da meta. Não movimentam
+                automaticamente o saldo de uma conta.
+              </p>
+            </>
+          )}
         </main>
       </div>
-
-      <MobileNavigation active={view} onNavigate={setView} onAdd={() => setDialogOpen(true)} />
+      <nav
+        aria-label="Navegação mobile"
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 items-center border-t border-slate-200 bg-white/95 px-2 pt-2 pb-[max(.75rem,env(safe-area-inset-bottom))] shadow-lg backdrop-blur lg:hidden"
+      >
+        {navigation
+          .filter((n) => n.name !== "Contas")
+          .slice(0, 2)
+          .map((n) => (
+            <NavItem key={n.name} item={n} active={view} onNavigate={setView} />
+          ))}
+        <button
+          aria-label="Adicionar lançamento"
+          onClick={() => setEditor({ kind: "entry" })}
+          className="mx-auto -mt-7 grid size-16 place-items-center rounded-full border-4 border-canvas bg-brand-600 text-white shadow-lg shadow-brand-600/25"
+        >
+          <Plus size={29} />
+        </button>
+        {navigation
+          .filter((n) => n.name !== "Contas")
+          .slice(2)
+          .map((n) => (
+            <NavItem key={n.name} item={n} active={view} onNavigate={setView} />
+          ))}
+      </nav>
       <input
-        ref={fileInput}
-        className="sr-only"
+        ref={csvInput}
         type="file"
         accept=".csv,text/csv"
-        onChange={(event) => importCsv(event.target.files?.[0])}
+        className="sr-only"
+        aria-label="Arquivo CSV"
+        onChange={(e) => {
+          void readFile(e.target.files?.[0], "csv");
+          e.target.value = "";
+        }}
       />
-      {dialogOpen && (
-        <TransactionDialog
-          form={form}
-          error={formError}
-          onChange={setForm}
-          onClose={() => {
-            setDialogOpen(false);
-            setFormError("");
+      <input
+        ref={backupInput}
+        type="file"
+        accept=".json,application/json"
+        className="sr-only"
+        aria-label="Arquivo de backup"
+        onChange={(e) => {
+          void readFile(e.target.files?.[0], "backup");
+          e.target.value = "";
+        }}
+      />
+      {editor && (
+        <EditorDialog
+          editor={editor}
+          accounts={data.accounts}
+          onClose={() => setEditor(null)}
+          onSave={(values) => {
+            act(() => {
+              if (editor.kind === "entry") {
+                const cents = parseMoney(values.amount);
+                const entry: Entry = {
+                  id: editor.entry?.id ?? id(),
+                  title: values.title.trim(),
+                  category: values.category.trim(),
+                  accountId: values.accountId,
+                  date: values.date,
+                  type: values.type as Entry["type"],
+                  cents,
+                  recurring: values.recurring === "true",
+                };
+                if (cents <= 0 || !validDate(entry.date))
+                  throw new Error("Informe valor positivo e data válida.");
+                update((d) => ({
+                  ...d,
+                  entries: [
+                    ...d.entries.filter((e) => e.id !== entry.id),
+                    entry,
+                  ],
+                }));
+              }
+              if (editor.kind === "account") {
+                const account = {
+                  id: editor.account?.id ?? id(),
+                  name: values.name.trim(),
+                  opening: parseMoney(values.amount),
+                };
+                update((d) => ({
+                  ...d,
+                  accounts: [
+                    ...d.accounts.filter((a) => a.id !== account.id),
+                    account,
+                  ],
+                }));
+              }
+              if (editor.kind === "budget") {
+                const budget = {
+                  id: editor.budget?.id ?? id(),
+                  category: values.category.trim(),
+                  limit: parseMoney(values.amount),
+                };
+                update((d) => ({
+                  ...d,
+                  budgets: [
+                    ...d.budgets.filter((b) => b.id !== budget.id),
+                    budget,
+                  ],
+                }));
+              }
+              if (editor.kind === "goal") {
+                const goal = {
+                  id: editor.goal?.id ?? id(),
+                  name: values.name.trim(),
+                  target: parseMoney(values.amount),
+                  saved: editor.goal?.saved ?? 0,
+                  deadline: values.date,
+                };
+                update((d) => ({
+                  ...d,
+                  goals: [...d.goals.filter((g) => g.id !== goal.id), goal],
+                }));
+              }
+              if (editor.kind === "contribution") {
+                const amount = parseMoney(values.amount);
+                if (amount <= 0)
+                  throw new Error("Informe um aporte maior que zero.");
+                update((d) => ({
+                  ...d,
+                  goals: d.goals.map((g) =>
+                    g.id === editor.goal?.id
+                      ? { ...g, saved: g.saved + amount }
+                      : g,
+                  ),
+                }));
+              }
+              setEditor(null);
+              notify("Registro salvo.");
+            });
           }}
-          onSubmit={submitTransaction}
+          onDelete={() => {
+            setConfirm({
+              title: "Excluir este registro? Esta ação não pode ser desfeita.",
+              action: () => {
+                act(() => {
+                  update((d) => {
+                    if (editor.kind === "entry")
+                      return {
+                        ...d,
+                        entries: d.entries.filter(
+                          (e) => e.id !== editor.entry?.id,
+                        ),
+                      };
+                    if (editor.kind === "account") {
+                      if (
+                        d.entries.some(
+                          (e) => e.accountId === editor.account?.id,
+                        )
+                      )
+                        throw new Error(
+                          "Exclua ou mova os lançamentos da conta antes de removê-la.",
+                        );
+                      return {
+                        ...d,
+                        accounts: d.accounts.filter(
+                          (a) => a.id !== editor.account?.id,
+                        ),
+                      };
+                    }
+                    if (editor.kind === "budget")
+                      return {
+                        ...d,
+                        budgets: d.budgets.filter(
+                          (b) => b.id !== editor.budget?.id,
+                        ),
+                      };
+                    return {
+                      ...d,
+                      goals: d.goals.filter((g) => g.id !== editor.goal?.id),
+                    };
+                  });
+                  setEditor(null);
+                  notify("Registro excluído.");
+                });
+              },
+            });
+          }}
+          error={error}
         />
       )}
-      <div className={`toast ${toast ? "show" : ""}`} role="status" aria-live="polite">
-        <ShieldCheck size={18} />
-        {toast}
-      </div>
-    </div>
-  );
-}
-
-function Sidebar({ active, onNavigate }: { active: View; onNavigate: (view: View) => void }) {
-  return (
-    <aside className="sidebar">
-      <div className="brand">
-        <span>F</span>
-        <strong>Fôlego</strong>
-      </div>
-      <nav aria-label="Navegação principal">
-        {navigation.map(({ name, icon: Icon }) => (
-          <button key={name} className={active === name ? "active" : ""} aria-current={active === name ? "page" : undefined} onClick={() => onNavigate(name)}>
-            <Icon size={20} />
-            <span>{name}</span>
-          </button>
-        ))}
-      </nav>
-      <div className="sidebar-progress">
-        <span>PLANEJAMENTO DO MÊS</span>
-        <strong>64% da renda livre</strong>
-        <div className="progress-track"><i style={{ width: "64%" }} /></div>
-        <small>Seu melhor resultado em 3 meses</small>
-      </div>
-      <button className="profile-button">
-        <span className="avatar">GM</span>
-        <span><strong>Gustavo</strong><small>Conta pessoal</small></span>
-        <ChevronDown size={16} />
-      </button>
-    </aside>
-  );
-}
-
-function AppHeader({ active, hidden, onToggleHidden }: { active: View; hidden: boolean; onToggleHidden: () => void }) {
-  return (
-    <header className="app-header">
-      <div>
-        <span className="demo-label">DADOS DE DEMONSTRAÇÃO</span>
-        <h1>{active}</h1>
-      </div>
-      <div className="header-actions">
-        <button className="icon-button" onClick={onToggleHidden} aria-label={hidden ? "Mostrar valores" : "Ocultar valores"} aria-pressed={hidden}>
-          {hidden ? <Eye size={21} /> : <EyeOff size={21} />}
-        </button>
-        <button className="icon-button notification-button" aria-label="Notificações"><Bell size={21} /><i /></button>
-        <button className="header-profile"><span className="avatar small">GM</span><span>Gustavo</span><ChevronDown size={15} /></button>
-      </div>
-    </header>
-  );
-}
-
-function HomeView({
-  balance, income, expenses, money, transactions, onNavigate, onAdd, hidden, onToggleHidden,
-}: {
-  balance: number; income: number; expenses: number; money: (value: number) => string; transactions: Transaction[];
-  onNavigate: (view: View) => void; onAdd: () => void; hidden: boolean; onToggleHidden: () => void;
-}) {
-  return (
-    <div className="home-grid">
-      <section className="welcome-card">
-        <div>
-          <span className="eyebrow light">OUTUBRO DE 2026</span>
-          <h2>Bom dia, Gustavo</h2>
-          <p>Seu planejamento está saudável e todas as contas estão em dia.</p>
-        </div>
-        <button className="month-button">Outubro <ChevronDown size={16} /></button>
-      </section>
-      <section className="balance-card card">
-        <div className="card-top">
-          <span className="eyebrow">SALDO DISPONÍVEL</span>
-          <button className="text-button" onClick={onToggleHidden}>{hidden ? <Eye size={17} /> : <EyeOff size={17} />}{hidden ? "Mostrar" : "Ocultar"}</button>
-        </div>
-        <strong className="hero-value">{money(balance)}</strong>
-        <p className="positive-line"><TrendingUp size={17} /> Você guardou 64% da sua renda neste mês</p>
-        <div className="metric-pair">
-          <div><span>RECEITAS</span><strong>{money(income)}</strong></div>
-          <div><span>DESPESAS</span><strong>{money(expenses)}</strong></div>
-        </div>
-      </section>
-      <section className="health-card card">
-        <div className="card-top"><div><span className="eyebrow">SAÚDE FINANCEIRA</span><h3>Seu mês está equilibrado</h3></div><strong className="score">82<small>/100</small></strong></div>
-        <div className="progress-track large" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={82}><i style={{ width: "82%" }} /></div>
-        <div className="health-signals">
-          <span><ShieldCheck size={18} /> Contas em dia</span>
-          <span><TrendingUp size={18} /> Gastos 12% abaixo do previsto</span>
-        </div>
-      </section>
-      <QuickActions onAdd={onAdd} onNavigate={onNavigate} />
-      <section className="chart-card card">
-        <div className="card-top"><div><span className="eyebrow">FLUXO DO MÊS</span><h3>Receitas e despesas</h3></div><button className="secondary-button">6 meses <ChevronDown size={15} /></button></div>
-        <div className="bar-chart" aria-label="Comparação de receitas e despesas dos últimos seis meses">
-          {[["mai",66,40],["jun",73,50],["jul",69,45],["ago",80,54],["set",75,47],["out",88,36]].map(([month,inc,exp]) => (
-            <div className="bar-group" key={month}>
-              <div><i className="bar-income" style={{ height: `${inc}%` }} /><i className="bar-expense" style={{ height: `${exp}%` }} /></div>
-              <span>{month}</span>
-            </div>
-          ))}
-        </div>
-        <div className="chart-legend"><span><i className="income-dot" />Receitas</span><span><i className="expense-dot" />Despesas</span></div>
-      </section>
-      <BudgetCard money={money} onNavigate={onNavigate} />
-      <RecentTransactions transactions={transactions} money={money} onNavigate={onNavigate} />
-    </div>
-  );
-}
-
-function QuickActions({ onAdd, onNavigate }: { onAdd: () => void; onNavigate: (view: View) => void }) {
-  return (
-    <section className="quick-actions">
-      <button onClick={onAdd}><span><Plus size={21} /></span><strong>Novo lançamento</strong><small>Receita ou despesa</small></button>
-      <button onClick={() => onNavigate("Planejamento")}><span><ListTree size={21} /></span><strong>Revisar orçamento</strong><small>5 limites ativos</small></button>
-      <button onClick={() => onNavigate("Metas")}><span><PiggyBank size={21} /></span><strong>Fazer um aporte</strong><small>3 metas ativas</small></button>
-      <button onClick={() => onNavigate("Contas")}><span><WalletCards size={21} /></span><strong>Contas e cartões</strong><small>Saldos e faturas</small></button>
-    </section>
-  );
-}
-
-function BudgetCard({ money, onNavigate }: { money: (value: number) => string; onNavigate: (view: View) => void }) {
-  const items = [["Moradia",1450,1800,"violet"],["Alimentação",687,900,"orange"],["Transporte",310,500,"teal"]] as const;
-  return (
-    <section className="budget-card card">
-      <div className="card-top"><div><span className="eyebrow">ORÇAMENTO</span><h3>Limites por categoria</h3></div><button className="text-button" onClick={() => onNavigate("Planejamento")}>Ver detalhes</button></div>
-      <div className="budget-list">
-        {items.map(([name,current,total,color]) => (
-          <div className="budget-item" key={name}>
-            <div><strong>{name}</strong><span>{money(current)} de {money(total)}</span></div>
-            <div className="progress-track"><i className={color} style={{ width: `${(current/total)*100}%` }} /></div>
+      {confirm && (
+        <Modal title="Confirme a alteração" onClose={() => setConfirm(null)}>
+          <p className="text-sm leading-6 text-slate-500">{confirm.title}</p>
+          <div className="mt-6 flex gap-3">
+            <Button variant="secondary" onClick={() => setConfirm(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                const action = confirm.action;
+                setConfirm(null);
+                action();
+              }}
+            >
+              Confirmar
+            </Button>
           </div>
-        ))}
-      </div>
-    </section>
+        </Modal>
+      )}
+      {toast && (
+        <div
+          role="status"
+          className="fixed right-4 bottom-28 left-4 z-40 mx-auto flex max-w-md items-center justify-center gap-2 rounded-2xl bg-brand-950 px-5 py-4 text-sm font-semibold text-white shadow-xl lg:bottom-5"
+        >
+          <ShieldCheck size={19} />
+          {toast}
+        </div>
+      )}
+    </div>
   );
 }
-
-function RecentTransactions({ transactions, money, onNavigate }: { transactions: Transaction[]; money: (value: number) => string; onNavigate: (view: View) => void }) {
-  return (
-    <section className="recent-card card">
-      <div className="card-top"><div><span className="eyebrow">MOVIMENTAÇÕES</span><h3>Atividade recente</h3></div><button className="text-button" onClick={() => onNavigate("Lançamentos")}>Ver extrato</button></div>
-      <div className="transaction-list">
-        {transactions.slice(0,5).map((item) => <TransactionRow key={item.id} item={item} money={money} />)}
-      </div>
-    </section>
-  );
-}
-
-function TransactionsView({
-  transactions, income, expenses, money, query, typeFilter, onQuery, onTypeFilter, onAdd, onExport, onImport,
+function Metric({
+  label,
+  value,
+  large = false,
+  className = "",
 }: {
-  transactions: Transaction[]; income: number; expenses: number; money: (value: number) => string; query: string; typeFilter: string;
-  onQuery: (value: string) => void; onTypeFilter: (value: string) => void; onAdd: () => void; onExport: () => void; onImport: () => void;
+  label: string;
+  value: string;
+  large?: boolean;
+  className?: string;
 }) {
   return (
-    <div className="transactions-page">
-      <div className="context-bar">
-        <div className="month-switcher"><button aria-label="Mês anterior"><ChevronLeft size={19} /></button><div><strong>Outubro de 2026</strong><small>{transactions.length} movimentações</small></div><button aria-label="Próximo mês"><ChevronRight size={19} /></button></div>
-        <div className="desktop-actions">
-          <button className="secondary-button" onClick={onImport}><Upload size={18} />Importar</button>
-          <button className="secondary-button" onClick={onExport}><Download size={18} />Exportar</button>
-          <button className="primary-button" onClick={onAdd}><Plus size={19} />Adicionar lançamento</button>
-        </div>
-      </div>
-      <section className="summary-strip">
-        <div><span className="summary-icon income"><ArrowDownLeft size={20} /></span><p>Entradas</p><strong>{money(income)}</strong></div>
-        <div><span className="summary-icon expense"><ArrowUpRight size={20} /></span><p>Saídas</p><strong>{money(expenses)}</strong></div>
-        <div><span className="summary-icon balance"><CircleDollarSign size={20} /></span><p>Saldo do mês</p><strong>{money(income-expenses)}</strong></div>
-      </section>
-      <section className="transactions-panel card">
-        <div className="filters">
-          <label className="search-field"><Search size={19} /><input value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Buscar lançamento" aria-label="Buscar lançamento" /></label>
-          <label className="filter-select"><ListFilter size={18} /><select value={typeFilter} onChange={(event) => onTypeFilter(event.target.value)} aria-label="Filtrar por tipo"><option value="">Todos</option><option value="income">Receitas</option><option value="expense">Despesas</option></select></label>
-          <button className="mobile-import" onClick={onImport} aria-label="Importar CSV"><Upload size={20} /></button>
-        </div>
-        <div className="transaction-table">
-          <div className="table-head"><span>Descrição</span><span>Categoria</span><span>Conta</span><span>Data</span><span>Valor</span><span /></div>
-          {transactions.map((item) => <TransactionRow key={item.id} item={item} money={money} detailed />)}
-          {!transactions.length && <div className="empty-state"><Search size={26} /><h3>Nenhum lançamento encontrado</h3><p>Tente alterar os filtros da busca.</p></div>}
-        </div>
-      </section>
+    <Card className={className}>
+      <Eyebrow>{label}</Eyebrow>
+      <p
+        className={`mt-3 font-extrabold tracking-tight tabular-nums ${large ? "text-3xl sm:text-4xl" : "text-lg sm:text-2xl"}`}
+      >
+        {value}
+      </p>
+    </Card>
+  );
+}
+function Progress({ value }: { value: number }) {
+  return (
+    <div
+      role="progressbar"
+      aria-label="Progresso"
+      aria-valuenow={Math.round(Math.min(100, Math.max(0, value)))}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100"
+    >
+      <div
+        className={`h-full rounded-full ${value > 100 ? "bg-orange-500" : "bg-brand-500"}`}
+        style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
+      />
     </div>
   );
 }
-
-function TransactionRow({ item, money, detailed = false }: { item: Transaction; money: (value: number) => string; detailed?: boolean }) {
-  return (
-    <article className={`transaction-row ${detailed ? "detailed" : ""}`}>
-      <span className={`transaction-icon ${item.type}`}>{item.type === "income" ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}</span>
-      <div className="transaction-name"><strong>{item.title}</strong><small>{item.date} · {item.account}</small></div>
-      {detailed && <span className="desktop-cell category-pill">{item.category}</span>}
-      {detailed && <span className="desktop-cell">{item.account}</span>}
-      {detailed && <span className="desktop-cell">{item.date}</span>}
-      <strong className={`transaction-amount ${item.type}`}>{item.type === "income" ? "+" : "−"} {money(item.amount)}</strong>
-      {detailed && <button className="more-button" aria-label={`Mais ações para ${item.title}`}><MoreHorizontal size={20} /></button>}
-    </article>
-  );
-}
-
-function AccountsView({ money }: { money: (value: number) => string }) {
-  return (
-    <div className="content-stack">
-      <div className="context-bar"><div><span className="eyebrow">SUA CARTEIRA</span><p>Contas, cartões e compromissos em um só lugar.</p></div><button className="primary-button"><Plus size={19} />Adicionar conta</button></div>
-      <div className="accounts-grid">
-        <section className="account-card primary-account"><span><Landmark size={21} />Conta principal</span><small>Banco Essencial · •• 4581</small><strong>{money(3542.65)}</strong><p>Disponível para uso</p></section>
-        <section className="account-card"><span><PiggyBank size={21} />Reserva</span><small>Conta rendimento</small><strong>{money(8450)}</strong><p>Objetivo: emergência</p></section>
-        <section className="account-card dark"><span><CreditCard size={21} />Cartão principal</span><small>Fatura vence dia 22</small><strong>{money(842.3)}</strong><div className="mini-progress"><i /></div><p>{money(3657.7)} de limite disponível</p></section>
-      </div>
-      <section className="card schedule-card"><div className="card-top"><div><span className="eyebrow">AGENDA FINANCEIRA</span><h3>Próximos compromissos</h3></div><button className="secondary-button"><CalendarDays size={17} />Ver calendário</button></div>
-        {[["15 out","Energia elétrica","Contas",168],["18 out","Academia","Saúde",99],["22 out","Fatura do cartão","Cartão",842.3]].map(([date,title,category,value]) => <div className="schedule-row" key={String(title)}><span>{date}</span><div><strong>{title}</strong><small>{category}</small></div><strong>{money(value as number)}</strong></div>)}
-      </section>
-    </div>
-  );
-}
-
-function PlanningView({ money }: { money: (value: number) => string }) {
-  const items = [["Moradia",1450,1800,81],["Alimentação",687,900,76],["Transporte",310,500,62],["Lazer",190,350,54],["Saúde",95,250,38]] as const;
-  return (
-    <div className="content-stack">
-      <div className="context-bar"><div><span className="eyebrow">OUTUBRO DE 2026</span><p>Defina limites e acompanhe o ritmo do mês.</p></div><button className="primary-button"><Plus size={19} />Novo limite</button></div>
-      <section className="summary-strip planning"><div><p>Renda planejada</p><strong>{money(5500)}</strong></div><div><p>Limite de gastos</p><strong>{money(3950)}</strong></div><div className="highlight"><p>Planejado para guardar</p><strong>{money(1550)}</strong></div></section>
-      <div className="planning-grid">
-        <section className="card"><div className="card-top"><div><span className="eyebrow">CATEGORIAS</span><h3>Previsto × realizado</h3></div></div><div className="planning-list">{items.map(([name,current,total,percent]) => <div className="planning-row" key={name}><div><strong>{name}</strong><span>{money(current)} de {money(total)}</span></div><div className="progress-track" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}><i style={{width:`${percent}%`}} /></div></div>)}</div></section>
-        <section className="forecast-card"><Sparkles size={24} /><span className="eyebrow light">PREVISÃO DO MÊS</span><h3>Você deve fechar no azul</h3><strong>{money(1740)}</strong><p>Saldo livre estimado para 31 de outubro.</p><div className="forecast-tag"><TrendingUp size={17} /> {money(190)} acima da sua meta</div></section>
-      </div>
-    </div>
-  );
-}
-
-function GoalsView({ money, onToast }: { money: (value: number) => string; onToast: (message: string) => void }) {
-  const goals = [["Reserva de emergência",8450,15000,56,"Abril de 2027"],["Viagem de férias",1820,5000,36,"Julho de 2027"],["Notebook novo",500,4500,11,"Março de 2028"]] as const;
-  return (
-    <div className="content-stack">
-      <div className="context-bar"><div><span className="eyebrow">SEUS OBJETIVOS</span><p>Avance um pouco a cada mês, sem perder o equilíbrio.</p></div><button className="primary-button"><Plus size={19} />Criar meta</button></div>
-      <section className="summary-strip"><div><p>Total guardado</p><strong>{money(10770)}</strong></div><div><p>Aportes no mês</p><strong>{money(850)}</strong></div><div><p>Metas ativas</p><strong>3</strong></div></section>
-      <div className="goals-grid">{goals.map(([name,current,total,percent,date]) => <section className="goal-card card" key={name}><div className="goal-icon"><Target size={22} /></div><span className="eyebrow">META ATIVA</span><h3>{name}</h3><strong>{money(current)}</strong><p>de {money(total)} · previsão {date}</p><div className="progress-track large" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}><i style={{width:`${percent}%`}} /></div><footer><span>{percent}% concluído</span><button className="secondary-button" onClick={() => onToast("Aporte registrado no protótipo")}>Fazer aporte</button></footer></section>)}</div>
-    </div>
-  );
-}
-
-function MobileNavigation({ active, onNavigate, onAdd }: { active: View; onNavigate: (view: View) => void; onAdd: () => void }) {
-  const mobileItems = navigation.filter(({ name }) => name !== "Contas");
-  return (
-    <nav className="mobile-nav" aria-label="Navegação mobile">
-      {mobileItems.slice(0,2).map(({ name, icon: Icon }) => <MobileNavItem key={name} name={name} active={active} icon={Icon} onNavigate={onNavigate} />)}
-      <button className="nav-fab" aria-label="Adicionar lançamento" onClick={onAdd}><Plus size={27} strokeWidth={2.4} /></button>
-      {mobileItems.slice(2).map(({ name, icon: Icon }) => <MobileNavItem key={name} name={name} active={active} icon={Icon} onNavigate={onNavigate} />)}
-    </nav>
-  );
-}
-
-function MobileNavItem({ name, active, icon: Icon, onNavigate }: { name: View; active: View; icon: LucideIcon; onNavigate: (view: View) => void }) {
-  return <button className={active === name ? "active" : ""} aria-current={active === name ? "page" : undefined} onClick={() => onNavigate(name)}><Icon size={24} strokeWidth={active === name ? 2.5 : 2.1} /><span>{name === "Lançamentos" ? "Extrato" : name === "Planejamento" ? "Planejar" : name}</span></button>;
-}
-
-function TransactionDialog({
-  form, error, onChange, onClose, onSubmit,
+function BudgetLine({
+  budget,
+  spent,
+  money,
+  onEdit,
 }: {
-  form: { title: string; amount: string; category: string; type: "income" | "expense"; account: string; date: string; recurring: boolean };
-  error: string;
-  onChange: (value: typeof form) => void;
+  budget: Budget;
+  spent: number;
+  money: (cents: number) => string;
+  onEdit: () => void;
+}) {
+  return (
+    <div className="border-t border-slate-100 py-5 first:border-0">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-extrabold">{budget.category}</p>
+          <p className="mt-2 text-xs text-slate-500">
+            {money(spent)} de {money(budget.limit)}
+          </p>
+        </div>
+        <button
+          aria-label={`Editar limite ${budget.category}`}
+          onClick={onEdit}
+          className="grid size-11 place-items-center rounded-xl text-slate-400 hover:bg-slate-50"
+        >
+          <Pencil size={17} />
+        </button>
+      </div>
+      <Progress value={(spent / budget.limit) * 100} />
+      {spent > budget.limit && (
+        <p className="mt-2 text-xs text-orange-700">
+          Limite ultrapassado em {money(spent - budget.limit)}.
+        </p>
+      )}
+    </div>
+  );
+}
+function NavItem({
+  item,
+  active,
+  onNavigate,
+}: {
+  item: (typeof navigation)[number];
+  active: View;
+  onNavigate: (view: View) => void;
+}) {
+  const Icon = item.icon;
+  return (
+    <button
+      onClick={() => onNavigate(item.name)}
+      aria-current={item.name === active ? "page" : undefined}
+      className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-2xl text-[10px] font-bold ${item.name === active ? "bg-brand-50 text-brand-600" : "text-slate-400"}`}
+    >
+      <Icon size={25} strokeWidth={item.name === active ? 2.5 : 2} />
+      {item.mobile}
+    </button>
+  );
+}
+function EditorDialog({
+  editor,
+  accounts,
+  onClose,
+  onSave,
+  onDelete,
+  error,
+}: {
+  editor: Editor;
+  accounts: Account[];
   onClose: () => void;
-  onSubmit: (event: FormEvent) => void;
+  onSave: (values: Record<string, string>) => void;
+  onDelete: () => void;
+  error: string;
 }) {
-  useEffect(() => {
-    const listener = (event: KeyboardEvent) => event.key === "Escape" && onClose();
-    window.addEventListener("keydown", listener);
-    return () => window.removeEventListener("keydown", listener);
-  }, [onClose]);
+  const e = editor.entry,
+    a = editor.account,
+    b = editor.budget,
+    g = editor.goal;
+  const [values, setValues] = useState<Record<string, string>>({
+    title: e?.title ?? "",
+    category: e?.category ?? b?.category ?? "Alimentação",
+    type: e?.type ?? "expense",
+    accountId: e?.accountId ?? accounts[0]?.id ?? "",
+    date: e?.date ?? g?.deadline ?? today(),
+    amount: moneyInput(
+      e?.cents ??
+        a?.opening ??
+        b?.limit ??
+        (editor.kind === "goal" ? g?.target : 0) ??
+        0,
+    ),
+    recurring: String(e?.recurring ?? false),
+    name: a?.name ?? g?.name ?? "",
+  });
+  const set = (key: string, value: string) =>
+    setValues((v) => ({ ...v, [key]: value }));
+  const kind = editor.kind;
+  const title = {
+    entry: e ? "Editar lançamento" : "Novo lançamento",
+    account: a ? "Editar conta" : "Nova conta",
+    budget: b ? "Editar limite" : "Novo limite",
+    goal: g ? "Editar meta" : "Nova meta",
+    contribution: `Aporte: ${g?.name ?? ""}`,
+  }[kind];
+  const amountLabel = {
+    entry: "Valor (R$)",
+    account: "Saldo inicial (R$)",
+    budget: "Limite mensal (R$)",
+    goal: "Valor desejado (R$)",
+    contribution: "Valor do aporte (R$)",
+  }[kind];
   return (
-    <div className="dialog-backdrop" role="presentation" onMouseDown={onClose}>
-      <form className="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title" onSubmit={onSubmit} onMouseDown={(event) => event.stopPropagation()}>
-        <header><div><span className="eyebrow">NOVO LANÇAMENTO</span><h2 id="dialog-title">Registre uma movimentação</h2></div><button type="button" className="icon-button" aria-label="Fechar" onClick={onClose}><X size={21} /></button></header>
-        <div className="type-switch"><button type="button" className={form.type === "expense" ? "active expense" : ""} onClick={() => onChange({...form,type:"expense"})}><ArrowUpRight size={18} />Despesa</button><button type="button" className={form.type === "income" ? "active income" : ""} onClick={() => onChange({...form,type:"income"})}><ArrowDownLeft size={18} />Receita</button></div>
-        <label>Descrição<input autoFocus value={form.title} onChange={(event) => onChange({...form,title:event.target.value})} placeholder="Ex.: Supermercado" /></label>
-        <div className="form-row"><label>Valor (R$)<input inputMode="decimal" value={form.amount} onChange={(event) => onChange({...form,amount:event.target.value})} placeholder="0,00" /></label><label>Data<input type="date" value={form.date} onChange={(event) => onChange({...form,date:event.target.value})} /></label></div>
-        <div className="form-row"><label>Categoria<select value={form.category} onChange={(event) => onChange({...form,category:event.target.value})}>{["Alimentação","Moradia","Transporte","Saúde","Lazer","Renda","Outros"].map((category) => <option key={category}>{category}</option>)}</select></label><label>Conta<select value={form.account} onChange={(event) => onChange({...form,account:event.target.value})}><option>Conta principal</option><option>Cartão principal</option><option>Dinheiro</option></select></label></div>
-        <label className="checkbox-label"><input type="checkbox" checked={form.recurring} onChange={(event) => onChange({...form,recurring:event.target.checked})} />Repetir todo mês</label>
-        <p className="form-error" aria-live="polite">{error}</p>
-        <button className="submit-button" type="submit">Salvar lançamento</button>
+    <Modal title={title} onClose={onClose}>
+      <form
+        className="space-y-4"
+        onSubmit={(event: FormEvent) => {
+          event.preventDefault();
+          onSave(values);
+        }}
+      >
+        {kind === "entry" && (
+          <>
+            <label className="label">
+              Tipo
+              <select
+                className="field"
+                value={values.type}
+                onChange={(e) => set("type", e.target.value)}
+              >
+                <option value="expense">Despesa</option>
+                <option value="income">Receita</option>
+              </select>
+            </label>
+            <label className="label">
+              Descrição
+              <input
+                autoFocus
+                className="field"
+                required
+                maxLength={160}
+                value={values.title}
+                onChange={(e) => set("title", e.target.value)}
+              />
+            </label>
+          </>
+        )}
+        {(kind === "account" || kind === "goal") && (
+          <label className="label">
+            Nome
+            <input
+              autoFocus
+              className="field"
+              required
+              maxLength={160}
+              value={values.name}
+              onChange={(e) => set("name", e.target.value)}
+            />
+          </label>
+        )}
+        <label className="label">
+          {amountLabel}
+          <input
+            className="field"
+            inputMode="decimal"
+            required
+            value={values.amount}
+            onChange={(e) => set("amount", e.target.value)}
+          />
+        </label>
+        {(kind === "entry" || kind === "goal") && (
+          <label className="label">
+            {kind === "goal" ? "Prazo" : "Data"}
+            <input
+              className="field"
+              type="date"
+              required
+              value={values.date}
+              onChange={(e) => set("date", e.target.value)}
+            />
+          </label>
+        )}
+        {(kind === "entry" || kind === "budget") && (
+          <label className="label">
+            Categoria
+            <input
+              className="field"
+              required
+              maxLength={160}
+              list="categories"
+              value={values.category}
+              onChange={(e) => set("category", e.target.value)}
+            />
+            <datalist id="categories">
+              {categories.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
+          </label>
+        )}
+        {kind === "entry" && (
+          <>
+            <label className="label">
+              Conta
+              <select
+                className="field"
+                required
+                value={values.accountId}
+                onChange={(e) => set("accountId", e.target.value)}
+              >
+                <option value="" disabled>
+                  Selecione uma conta
+                </option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {!accounts.length && (
+              <p className="text-sm text-orange-700">
+                Cadastre uma conta antes de adicionar lançamentos.
+              </p>
+            )}
+            <label className="flex min-h-11 items-center gap-3 text-sm text-slate-600">
+              <input
+                type="checkbox"
+                checked={values.recurring === "true"}
+                onChange={(e) => set("recurring", String(e.target.checked))}
+                className="size-5 accent-brand-600"
+              />
+              Disponibilizar como recorrência mensal
+            </label>
+          </>
+        )}
+        {error && (
+          <p role="alert" className="text-sm text-red-700">
+            {error}
+          </p>
+        )}
+        <div className="flex gap-3 pt-2">
+          <Button type="submit" className="flex-1">
+            Salvar
+          </Button>
+          {(e || a || b || (g && kind === "goal")) && (
+            <Button type="button" variant="danger" onClick={onDelete}>
+              <Trash2 size={18} />
+              Excluir
+            </Button>
+          )}
+        </div>
       </form>
-    </div>
+    </Modal>
   );
 }
