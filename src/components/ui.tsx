@@ -4,7 +4,7 @@ import {
   type ButtonHTMLAttributes,
   type ReactNode,
 } from "react";
-import { X } from "lucide-react";
+import { X, Inbox, type LucideIcon } from "lucide-react";
 import { cn } from "../lib/cn";
 export function LoadingScreen({
   title,
@@ -120,11 +120,23 @@ export function Eyebrow({ children }: { children: ReactNode }) {
     </p>
   );
 }
-export function Empty({ children }: { children: ReactNode }) {
+export function Empty({
+  children,
+  icon: Icon = Inbox,
+}: {
+  children: ReactNode;
+  icon?: LucideIcon;
+}) {
   return (
-    <p className="py-10 text-center text-sm leading-6 text-slate-500">
-      {children}
-    </p>
+    <div className="flex flex-col items-center gap-4 py-8 text-center">
+      <span
+        className="grid size-14 place-items-center rounded-2xl bg-brand-50 text-brand-600"
+        aria-hidden="true"
+      >
+        <Icon size={28} strokeWidth={1.6} />
+      </span>
+      <p className="max-w-md text-sm leading-6 text-slate-500">{children}</p>
+    </div>
   );
 }
 export function Modal({

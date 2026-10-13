@@ -491,13 +491,24 @@ function FinanceApp({
       </aside>
       <div className="flex h-full min-h-0 flex-col lg:pl-60">
         <header className="relative z-20 flex h-20 shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-8">
-          <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-              {userId ? "SEU ESPAÇO FINANCEIRO" : "DEMONSTRAÇÃO LOCAL"}
-            </p>
-            <h1 className="mt-1 text-xl font-extrabold tracking-tight">
-              {view}
-            </h1>
+          <div className="flex min-w-0 items-center gap-3">
+            <span
+              aria-label="Fôlego"
+              className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-600 text-lg font-extrabold text-white lg:hidden"
+            >
+              F
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 max-[400px]:hidden">
+                {userId ? "SEU ESPAÇO FINANCEIRO" : "DEMONSTRAÇÃO LOCAL"}
+              </p>
+              <h1
+                className="mt-1 truncate text-base font-extrabold tracking-tight sm:text-xl"
+                title={view}
+              >
+                {view}
+              </h1>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -709,7 +720,7 @@ function FinanceApp({
                         />
                       ))
                     ) : (
-                      <Empty>
+                      <Empty icon={LayoutGrid}>
                         Defina um limite em Planejamento para acompanhar seus
                         gastos.
                       </Empty>
@@ -897,15 +908,15 @@ function FinanceApp({
                       />
                     ))
                   ) : (
-                    <Card className="text-center">
-                      <Empty>
+                    <div className="text-center">
+                      <Empty icon={LayoutGrid}>
                         Defina quanto deseja gastar em cada categoria.
                       </Empty>
                       <Button onClick={() => setEditor({ kind: "budget" })}>
                         <Plus size={18} />
                         Criar primeiro limite
                       </Button>
-                    </Card>
+                    </div>
                   )}
                 </Card>
                 <p className="text-xs leading-5 text-slate-500">
@@ -963,15 +974,15 @@ function FinanceApp({
                 </div>
                 {!data.goals.length && (
                   <Card>
-                    <Card className="text-center">
-                      <Empty>
+                    <div className="text-center">
+                      <Empty icon={Target}>
                         Transforme um objetivo em um plano de economia.
                       </Empty>
                       <Button onClick={() => setEditor({ kind: "goal" })}>
                         <Target size={18} />
                         Criar primeira meta
                       </Button>
-                    </Card>
+                    </div>
                   </Card>
                 )}
                 <p className="text-xs leading-5 text-slate-500">
