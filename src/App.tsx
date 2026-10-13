@@ -11,12 +11,14 @@ import {
   Home,
   LayoutGrid,
   LogOut,
+  Moon,
   Pencil,
   Plus,
   ReceiptText,
   RefreshCw,
   Search,
   ShieldCheck,
+  Sun,
   Target,
   Trash2,
   Upload,
@@ -164,6 +166,28 @@ function FinanceApp({
   onExit: () => Promise<void>;
 }) {
   const finance = useFinance(userId);
+  const [dark, setDark] = useState(() => {
+    try {
+      const saved = localStorage.getItem("folego-theme");
+      return saved
+        ? saved === "dark"
+        : matchMedia("(prefers-color-scheme: dark)").matches;
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    document.documentElement.style.colorScheme = dark ? "dark" : "light";
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute("content", dark ? "#101d1b" : "#f3f7f5");
+    try {
+      localStorage.setItem("folego-theme", dark ? "dark" : "light");
+    } catch {
+      /* Preference is optional when storage is unavailable. */
+    }
+  }, [dark]);
   const { data, update } = finance;
   const [view, setView] = useState<View>("Início"),
     [month, setMonth] = useState(today().slice(0, 7)),
@@ -457,6 +481,15 @@ function FinanceApp({
           </div>
           <div className="flex items-center gap-2">
             <button
+              aria-label={dark ? "Ativar tema claro" : "Ativar tema escuro"}
+              aria-pressed={dark}
+              title={dark ? "Ativar tema claro" : "Ativar tema escuro"}
+              onClick={() => setDark((value) => !value)}
+              className="grid size-12 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-500"
+            >
+              {dark ? <Sun size={22} /> : <Moon size={22} />}
+            </button>
+            <button
               aria-label={hidden ? "Mostrar valores" : "Ocultar valores"}
               aria-pressed={hidden}
               onClick={() => setHidden((v) => !v)}
@@ -473,7 +506,10 @@ function FinanceApp({
             </button>
           </div>
         </header>
-        <main className="mx-auto max-w-7xl space-y-5 px-3 pt-5 pb-32 sm:px-8 lg:pb-12">
+        <main
+          key={view}
+          className="screen-enter mx-auto max-w-7xl space-y-5 px-3 pt-5 pb-32 sm:px-8 lg:pb-12"
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex w-full min-w-0 items-center justify-between gap-2 sm:w-auto">
               <button
@@ -559,7 +595,7 @@ function FinanceApp({
           )}
           {view === "Início" && (
             <>
-              <section className="flex items-start justify-between gap-4 rounded-3xl bg-linear-to-br from-brand-950 to-brand-700 p-6 text-white sm:p-8">
+              <section className="hero-banner flex items-start justify-between gap-4 rounded-3xl bg-linear-to-br from-brand-950 to-brand-700 p-6 text-white sm:p-8">
                 <div>
                   <p className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-200">
                     UM PASSO DE CADA VEZ

@@ -49,6 +49,95 @@ dialog::backdrop {
   background: rgb(8 31 24 / 0.6);
   backdrop-filter: blur(5px);
 }
+
+/* Semantic palette: existing Tailwind utilities follow the selected theme. */
+:root[data-theme="dark"] {
+  --color-canvas: #0c1715;
+  --color-ink: #e3f2eb;
+  --color-slate-50: #20332e;
+  --color-slate-100: #253a34;
+  --color-slate-200: #344b43;
+  --color-slate-300: #61786e;
+  --color-slate-400: #a0b6ac;
+  --color-slate-500: #adc2b8;
+  --color-slate-600: #c4d6cd;
+  --color-slate-700: #d6e6de;
+  --color-slate-800: #e3eee8;
+  --color-slate-900: #f1f8f4;
+  --color-brand-50: #193b30;
+  --color-brand-100: #24513f;
+  --color-brand-600: #52d3a4;
+  --color-brand-700: #39b88b;
+  --shadow-card: 0 12px 32px rgb(0 0 0 / 0.16);
+}
+:root[data-theme="dark"] .bg-white,
+:root[data-theme="dark"] dialog {
+  background-color: #14251f;
+}
+:root[data-theme="dark"] header,
+:root[data-theme="dark"] nav[aria-label="Navegação mobile"] {
+  background-color: rgb(20 37 31 / 0.95);
+}
+:root[data-theme="dark"] .bg-brand-600 {
+  color: #082c20;
+}
+:root[data-theme="dark"] .hero-banner {
+  background-image: linear-gradient(135deg, #103c30, #17654d);
+}
+:root[data-theme="dark"] .text-emerald-600,
+:root[data-theme="dark"] .text-emerald-700 {
+  color: #6ce0b4;
+}
+:root[data-theme="dark"] .text-red-600,
+:root[data-theme="dark"] .text-red-700 {
+  color: #ffb4bd;
+}
+:root[data-theme="dark"] .bg-red-50 {
+  background-color: #3e2227;
+  color: #ffb4bd;
+}
+body {
+  background-image: radial-gradient(
+    ellipse at top right,
+    rgb(36 155 119 / 0.06),
+    transparent 60%
+  );
+  transition:
+    background-color 220ms ease,
+    color 220ms ease;
+}
+button {
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+@media (hover: hover) {
+  button:not(:disabled):hover {
+    box-shadow: 0 3px 12px rgb(16 60 48 / 0.08);
+  }
+}
+.screen-enter {
+  animation: screen-enter 240ms ease-out both;
+}
+dialog[open] {
+  animation: screen-enter 180ms ease-out both;
+}
+@keyframes screen-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
