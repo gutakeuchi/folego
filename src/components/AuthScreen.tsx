@@ -77,7 +77,7 @@ export function AuthScreen({
         ? "Recupere seu acesso"
         : "Seu dinheiro, com mais clareza";
   return (
-    <main className="grid min-h-dvh place-items-center bg-[radial-gradient(ellipse_at_top_left,_#d7efe3,_transparent_65%)] p-5">
+    <main className="auth-screen grid min-h-dvh place-items-center p-5 sm:p-8">
       <div className="w-full max-w-md">
         <a
           href="#"
@@ -88,7 +88,7 @@ export function AuthScreen({
           </span>
           Fôlego
         </a>
-        <Card>
+        <Card className="auth-card rounded-3xl p-6 sm:p-8">
           <h1 className="text-2xl font-extrabold tracking-tight">{title}</h1>
           <p className="mt-3 text-sm leading-6 text-slate-500">
             {supabase
@@ -118,6 +118,7 @@ export function AuthScreen({
                   <input
                     className="field"
                     type="email"
+                    placeholder="voce@exemplo.com"
                     autoComplete="email"
                     required
                     value={email}

@@ -50,6 +50,26 @@ dialog::backdrop {
   backdrop-filter: blur(5px);
 }
 
+.auth-screen {
+  background:
+    radial-gradient(ellipse at 50% 0%, #d7efe3, transparent 65%),
+    var(--color-canvas);
+}
+:root[data-theme="dark"] .auth-screen {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgb(36 155 119 / 0.12), transparent 55%),
+    #0c1715;
+}
+:root[data-theme="dark"] .auth-screen .auth-card {
+  background-color: #162721;
+  border-color: #30483e;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 0.28);
+}
+:root[data-theme="dark"] .auth-card .field {
+  background-color: #0e1d17;
+  border-color: #3c594b;
+}
+
 /* Semantic palette: existing Tailwind utilities follow the selected theme. */
 :root[data-theme="dark"] {
   --color-canvas: #0c1715;
