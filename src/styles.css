@@ -71,8 +71,22 @@ dialog::backdrop {
   --shadow-card: 0 12px 32px rgb(0 0 0 / 0.16);
 }
 :root[data-theme="dark"] .bg-white,
+:root[data-theme="dark"] .field,
 :root[data-theme="dark"] dialog {
   background-color: #14251f;
+}
+:root[data-theme="dark"] .field {
+  color: #e3f2eb;
+  border-color: #4b685b;
+  color-scheme: dark;
+}
+.field::placeholder {
+  color: var(--color-slate-500);
+  opacity: 1;
+}
+select.field option {
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
 }
 :root[data-theme="dark"] header,
 :root[data-theme="dark"] nav[aria-label="Navegação mobile"] {

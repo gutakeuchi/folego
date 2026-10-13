@@ -1269,6 +1269,9 @@ function EditorDialog({
   });
   const set = (key: string, value: string) =>
     setValues((v) => ({ ...v, [key]: value }));
+  const [customCategory, setCustomCategory] = useState(
+    !categories.includes(values.category),
+  );
   const kind = editor.kind;
   const title = {
     entry: e ? "Editar lançamento" : "Novo lançamento",
@@ -1355,22 +1358,41 @@ function EditorDialog({
           </label>
         )}
         {(kind === "entry" || kind === "budget") && (
-          <label className="label">
-            Categoria
-            <input
-              className="field"
-              required
-              maxLength={160}
-              list="categories"
-              value={values.category}
-              onChange={(e) => set("category", e.target.value)}
-            />
-            <datalist id="categories">
-              {categories.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
-          </label>
+          <div className="space-y-3">
+            <label className="label">
+              Categoria
+              <select
+                className="field"
+                required
+                value={customCategory ? "__custom" : values.category}
+                onChange={(e) => {
+                  const custom = e.target.value === "__custom";
+                  setCustomCategory(custom);
+                  set("category", custom ? "" : e.target.value);
+                }}
+              >
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+                <option value="__custom">Outra categoria…</option>
+              </select>
+            </label>
+            {customCategory && (
+              <label className="label">
+                Nome da categoria
+                <input
+                  className="field"
+                  required
+                  maxLength={160}
+                  placeholder="Ex.: Pets ou Educação"
+                  value={values.category}
+                  onChange={(e) => set("category", e.target.value)}
+                />
+              </label>
+            )}
+          </div>
         )}
         {kind === "entry" && (
           <>
