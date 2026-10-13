@@ -44,6 +44,7 @@ import {
   type Goal,
 } from "./model";
 import { AuthScreen } from "./components/AuthScreen";
+import { parseOfx, possibleDuplicate } from "./ofx";
 import {
   Button,
   Card,
@@ -174,6 +175,10 @@ function FinanceApp({
   onExit: () => Promise<void>;
 }) {
   const finance = useFinance(userId);
+  const ofxInput = useRef<HTMLInputElement>(null);
+  const [ofxRows, setOfxRows] = useState<Entry[] | null>(null);
+  const [ofxAccount, setOfxAccount] = useState("");
+  const [ofxSelected, setOfxSelected] = useState<Set<string>>(new Set());
   const [dark, setDark] = useState(() => {
     try {
       const saved = localStorage.getItem("folego-theme");
@@ -738,6 +743,16 @@ function FinanceApp({
                 <div className="mb-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                   <Button
                     variant="secondary"
+                    className="col-span-2"
+                    onClick={() => {
+                      setOfxAccount(data.accounts[0]?.id ?? "");
+                      setOfxRows([]);
+                    }}
+                  >
+                    Importar OFX
+                  </Button>
+                  <Button
+                    variant="secondary"
                     className="min-w-0 px-3 sm:px-4"
                     onClick={() => csvInput.current?.click()}
                   >
@@ -992,6 +1007,163 @@ function FinanceApp({
           e.target.value = "";
         }}
       />
+      {ofxRows !== null && (
+        <Modal title="Importar extrato OFX" onClose={() => setOfxRows(null)}>
+          <p className="mb-4 text-sm text-slate-500">
+            O arquivo é lido neste navegador. Somente os lançamentos confirmados
+            serão salvos na sua conta. O saldo inicial não será alterado.
+          </p>
+          <label className="label">
+            Conta de destino
+            <select
+              className="field"
+              value={ofxAccount}
+              disabled={ofxRows.length > 0}
+              onChange={(e) => setOfxAccount(e.target.value)}
+            >
+              <option value="" disabled>
+                Selecione
+              </option>
+              {data.accounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <input
+            ref={ofxInput}
+            type="file"
+            accept=".ofx,.qfx"
+            aria-label="Selecionar extrato OFX"
+            className="field mt-4"
+            disabled={!ofxAccount}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              setError("");
+              setOfxRows([]);
+              setOfxSelected(new Set());
+              try {
+                if (file.size > 5_000_000)
+                  throw new Error("Use um arquivo de até 5 MB.");
+                const bytes = await file.arrayBuffer();
+                let text = new TextDecoder("utf-8").decode(bytes);
+                if (text.includes("\uFFFD"))
+                  text = new TextDecoder("windows-1252").decode(bytes);
+                const rows = await parseOfx(text, ofxAccount);
+                const unique = rows.filter(
+                  (r, i) => rows.findIndex((x) => x.id === r.id) === i,
+                );
+                setOfxRows(unique);
+                setOfxSelected(
+                  new Set(
+                    unique
+                      .filter(
+                        (r) =>
+                          !data.entries.some(
+                            (x) => x.id === r.id || possibleDuplicate(x, r),
+                          ),
+                      )
+                      .map((r) => r.id),
+                  ),
+                );
+              } catch (err) {
+                setError(
+                  err instanceof Error
+                    ? err.message
+                    : "Não foi possível ler o OFX.",
+                );
+              }
+            }}
+          />
+          {error && (
+            <p role="alert" className="mt-3 text-sm text-red-700">
+              {error}
+            </p>
+          )}
+          {ofxRows.length > 0 && (
+            <>
+              <p className="my-4 text-sm">
+                {ofxSelected.size} selecionado(s) de {ofxRows.length}. Revise
+                datas, valores e conta. Possíveis duplicados ficam desmarcados;
+                identificadores já importados são bloqueados. Categorias serão
+                “Outros”.
+              </p>
+              <div className="max-h-64 space-y-2 overflow-y-auto">
+                {ofxRows.map((row) => {
+                  const exact = data.entries.some((x) => x.id === row.id);
+                  const possible = data.entries.some((x) =>
+                    possibleDuplicate(x, row),
+                  );
+                  return (
+                    <label
+                      key={row.id}
+                      className="flex items-start gap-3 rounded-xl border border-slate-200 p-3 text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        className="mt-1 size-5 shrink-0 accent-brand-600"
+                        checked={ofxSelected.has(row.id)}
+                        disabled={exact}
+                        onChange={(e) =>
+                          setOfxSelected((current) => {
+                            const next = new Set(current);
+                            if (e.target.checked) next.add(row.id);
+                            else next.delete(row.id);
+                            return next;
+                          })
+                        }
+                      />
+                      <span className="min-w-0 break-words">
+                        <strong>{row.title}</strong>
+                        <span className="block">
+                          {row.date} · {row.type === "expense" ? "−" : "+"}
+                          {money(row.cents)}
+                        </span>
+                        {(exact || possible) && (
+                          <span className="block text-slate-500">
+                            {exact
+                              ? "Já importado"
+                              : "Possível duplicado — confira antes de selecionar"}
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              <Button
+                className="mt-5 w-full"
+                disabled={!ofxSelected.size}
+                onClick={() =>
+                  act(() => {
+                    const selected = ofxRows.filter((r) =>
+                      ofxSelected.has(r.id),
+                    );
+                    update((d) => ({
+                      ...d,
+                      entries: [
+                        ...d.entries,
+                        ...selected.filter(
+                          (r) => !d.entries.some((x) => x.id === r.id),
+                        ),
+                      ],
+                    }));
+                    setOfxRows(null);
+                    notify(
+                      "Extrato importado. Confira as categorias e o período selecionado.",
+                    );
+                  })
+                }
+              >
+                Confirmar importação ({ofxSelected.size})
+              </Button>
+            </>
+          )}
+        </Modal>
+      )}
       {editor && (
         <EditorDialog
           editor={editor}

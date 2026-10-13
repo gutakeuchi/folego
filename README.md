@@ -9,6 +9,8 @@ Aplicativo web responsivo com React, TypeScript, Tailwind CSS 4 e backend Supaba
 
 ## Funcionalidades
 
+- Importação OFX em Lançamentos → Importar OFX: escolha uma conta, selecione um extrato BRL de até 5 MB e revise os registros antes de confirmar. Categorias começam como Outros; o saldo inicial não é alterado. Identificadores bancários são convertidos em hashes estáveis vinculados à conta de destino, bloqueando reimportação. Coincidências de data, valor, tipo e descrição ficam desmarcadas como possíveis duplicados. Duplicados com descrições ou identificadores diferentes ainda exigem revisão manual. Somente uma conta por arquivo; correções bancárias e investimentos não são suportados. O arquivo é processado no navegador; lançamentos confirmados seguem a sincronização normal da conta. Guarde o original para conferência. Testes usam exemplos sintéticos; variações de bancos reais ainda precisam de validação.
+
 - Cadastro, login, saída e recuperação de senha via Supabase Auth.
 - PostgreSQL com isolamento por usuário (RLS), validação e gravação com revisão.
 - Criação, edição e exclusão de lançamentos, contas, limites e metas.
