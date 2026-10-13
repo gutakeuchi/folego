@@ -556,9 +556,6 @@ function FinanceApp({
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
             <span role="status">{statusText}</span>
             <div className="flex items-center gap-3">
-              <button onClick={legacyImport} className="min-h-10 font-semibold">
-                Importar versão antiga
-              </button>
               {userId && (
                 <button
                   onClick={finance.retry}
@@ -716,7 +713,7 @@ function FinanceApp({
                 />
               </div>
               <Card>
-                <div className="mb-3 flex flex-wrap gap-2">
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row">
                   <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 px-3">
                     <Search size={18} className="shrink-0 text-slate-400" />
                     <input
@@ -731,7 +728,7 @@ function FinanceApp({
                     aria-label="Filtrar por tipo"
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
-                    className="field max-w-32"
+                    className="field sm:max-w-40"
                   >
                     <option value="">Todos</option>
                     <option value="income">Receitas</option>
@@ -815,6 +812,13 @@ function FinanceApp({
               </div>
               <Card>
                 <h2 className="font-extrabold">Seus dados</h2>
+                <Button
+                  variant="secondary"
+                  className="mt-4"
+                  onClick={legacyImport}
+                >
+                  Importar versão antiga
+                </Button>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
                   Mantenha uma cópia dos registros. Um backup inclui contas,
                   lançamentos, limites e metas.
@@ -866,7 +870,15 @@ function FinanceApp({
                     />
                   ))
                 ) : (
-                  <Empty>Crie seu primeiro limite por categoria.</Empty>
+                  <Card className="text-center">
+                    <Empty>
+                      Defina quanto deseja gastar em cada categoria.
+                    </Empty>
+                    <Button onClick={() => setEditor({ kind: "budget" })}>
+                      <Plus size={18} />
+                      Criar primeiro limite
+                    </Button>
+                  </Card>
                 )}
               </Card>
               <p className="text-xs leading-5 text-slate-500">
@@ -924,7 +936,15 @@ function FinanceApp({
               </div>
               {!data.goals.length && (
                 <Card>
-                  <Empty>Crie uma meta para acompanhar seu progresso.</Empty>
+                  <Card className="text-center">
+                    <Empty>
+                      Transforme um objetivo em um plano de economia.
+                    </Empty>
+                    <Button onClick={() => setEditor({ kind: "goal" })}>
+                      <Target size={18} />
+                      Criar primeira meta
+                    </Button>
+                  </Card>
                 </Card>
               )}
               <p className="text-xs leading-5 text-slate-500">
@@ -939,26 +959,17 @@ function FinanceApp({
         aria-label="Navegação mobile"
         className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 items-center border-t border-slate-200 bg-white/95 px-2 pt-2 pb-[max(.75rem,env(safe-area-inset-bottom))] shadow-lg backdrop-blur lg:hidden"
       >
-        {navigation
-          .filter((n) => n.name !== "Contas")
-          .slice(0, 2)
-          .map((n) => (
-            <NavItem key={n.name} item={n} active={view} onNavigate={setView} />
-          ))}
-        <button
-          aria-label="Adicionar lançamento"
-          onClick={() => setEditor({ kind: "entry" })}
-          className="mx-auto -mt-7 grid size-16 place-items-center rounded-full border-4 border-canvas bg-brand-600 text-white shadow-lg shadow-brand-600/25"
-        >
-          <Plus size={29} />
-        </button>
-        {navigation
-          .filter((n) => n.name !== "Contas")
-          .slice(2)
-          .map((n) => (
-            <NavItem key={n.name} item={n} active={view} onNavigate={setView} />
-          ))}
+        {navigation.map((n) => (
+          <NavItem key={n.name} item={n} active={view} onNavigate={setView} />
+        ))}
       </nav>
+      <button
+        aria-label="Adicionar lançamento"
+        onClick={() => setEditor({ kind: "entry" })}
+        className="fixed right-4 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-30 grid size-14 place-items-center rounded-full border-4 border-canvas bg-brand-600 text-white shadow-lg shadow-brand-600/25 lg:hidden"
+      >
+        <Plus size={29} />
+      </button>
       <input
         ref={csvInput}
         type="file"
@@ -1240,7 +1251,7 @@ function NavItem({
     <button
       onClick={() => onNavigate(item.name)}
       aria-current={item.name === active ? "page" : undefined}
-      className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-2xl text-[10px] font-bold ${item.name === active ? "bg-brand-50 text-brand-600" : "text-slate-400"}`}
+      className={`flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-2xl text-xs font-bold ${item.name === active ? "bg-brand-50 text-brand-600" : "text-slate-400"}`}
     >
       <Icon size={25} strokeWidth={item.name === active ? 2.5 : 2} />
       {item.mobile}

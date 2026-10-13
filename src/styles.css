@@ -11,6 +11,7 @@
   --color-canvas: #f3f7f5;
   --color-ink: #18382d;
   --shadow-card: 0 8px 30px rgb(16 60 48 / 0.05);
+  --color-slate-400: #64748b;
 }
 
 @layer base {
@@ -103,6 +104,12 @@ dialog::backdrop {
 .field::placeholder {
   color: var(--color-slate-500);
   opacity: 1;
+}
+@media (max-width: 639px) {
+  .field,
+  input[aria-label="Buscar lançamento"] {
+    font-size: 16px;
+  }
 }
 select.field option {
   background-color: var(--color-canvas);
