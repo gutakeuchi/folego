@@ -18,7 +18,15 @@ Aplicativo web responsivo com React, TypeScript, Tailwind CSS 4 e backend Supaba
 - Demonstração local separada dos dados de conta.
 - Preparação PWA com manifesto e service worker.
 
-O banco já foi provisionado no projeto `bhbextfmjailoozdhidk`. Para utilizar login em outra instalação, configure as variáveis públicas e os redirects do Auth. O frontend ainda precisa ser hospedado para acesso por um link público. Confirmação e recuperação por e-mail precisam de teste de aceitação com uma conta real.
+O banco já foi provisionado no projeto `bhbextfmjailoozdhidk`. O frontend está publicado em [gutakeuchi.github.io/folego](https://gutakeuchi.github.io/folego/) pelo GitHub Pages, com HTTPS. Os redirects do Auth ainda precisam ser configurados no painel Supabase; confirmação e recuperação por e-mail precisam de teste de aceitação com uma conta real.
+
+## Usar no celular e publicação
+
+Abra https://gutakeuchi.github.io/folego/ no navegador do celular. No Android, use o menu do Chrome para adicionar à tela inicial; no iPhone, use Compartilhar → Adicionar à Tela de Início no Safari. A disponibilidade da opção de instalação depende do navegador. A instalação e o modo offline ainda não foram validados em aparelhos reais.
+
+Antes de testar cadastro e recuperação, no Supabase, acesse Authentication → URL Configuration. Defina Site URL como `https://gutakeuchi.github.io/folego/` e adicione aos Redirect URLs os endereços exatos `https://gutakeuchi.github.io/folego/` e `https://gutakeuchi.github.io/folego/?recovery=1`. Preserve os redirects de desenvolvimento necessários. Não desative confirmação de e-mail nem RLS.
+
+A publicação de 13/10/2026 usa a branch `gh-pages`, pasta raiz, com `.nojekyll`. A branch `main` contém o código-fonte. Alterar `main` não publica automaticamente: para atualizar, execute `npm ci` e `npm run build` com as variáveis públicas configuradas e publique o conteúdo de `dist` em `gh-pages`, preservando `.nojekyll`. Nunca publique `.env.local`, senhas ou chaves administrativas. O GitHub Pages hospeda apenas o frontend; dados e autenticação permanecem no Supabase.
 
 ## Executar
 
