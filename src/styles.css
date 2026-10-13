@@ -229,6 +229,97 @@ dialog[open] {
     transform: translateY(0);
   }
 }
+.dashboard-content section.rounded-2xl,
+.auth-card {
+  border-radius: 24px;
+  box-shadow:
+    0 4px 6px rgb(16 60 48 / 0.02),
+    0 16px 40px rgb(16 60 48 / 0.05);
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    background-color 200ms ease;
+}
+:root[data-theme="dark"] .dashboard-content section.rounded-2xl {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.025),
+    0 12px 32px rgb(0 0 0 / 0.12);
+}
+.hero-banner {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgb(20 123 92 / 0.14);
+}
+.hero-banner::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 260px;
+  aspect-ratio: 1;
+  right: -60px;
+  top: -110px;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 45px rgb(255 255 255 / 0.025),
+    0 0 0 90px rgb(255 255 255 / 0.02);
+  pointer-events: none;
+}
+.dashboard-content > * {
+  animation: card-reveal 320ms ease-out both;
+}
+.dashboard-content > :nth-child(2) {
+  animation-delay: 30ms;
+}
+.dashboard-content > :nth-child(3) {
+  animation-delay: 60ms;
+}
+.dashboard-content > :nth-child(4) {
+  animation-delay: 90ms;
+}
+.dashboard-content > :nth-child(n + 5) {
+  animation-delay: 120ms;
+}
+@keyframes card-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+nav button[aria-current="page"] {
+  box-shadow: inset 0 0 0 1px rgb(36 155 119 / 0.15);
+}
+.field:focus {
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--color-brand-600) 16%, transparent);
+}
+[role="progressbar"] > div {
+  transition: width 400ms ease;
+}
+@media (hover: hover) {
+  .dashboard-content section.rounded-2xl:hover {
+    border-color: color-mix(
+      in srgb,
+      var(--color-brand-600) 30%,
+      var(--color-slate-200)
+    );
+  }
+  button.bg-brand-600:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgb(20 123 92 / 0.22);
+  }
+  nav button:not(:disabled):hover svg {
+    transform: translateY(-1px);
+  }
+  nav button svg {
+    transition: transform 180ms ease;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
