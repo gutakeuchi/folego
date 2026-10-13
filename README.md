@@ -2,6 +2,10 @@
 
 Protótipo funcional e responsivo de um produto para organização financeira pessoal. A interface foi pensada primeiro para celular, sem perder uma experiência completa no computador.
 
+## Documentação para estudo
+
+Leia o [guia completo do projeto](docs/GUIA-DE-ESTUDO.md): histórico, arquitetura, tecnologias, exemplos do código, React, TypeScript, armazenamento local, CSV, design mobile, PWA, Git/GitHub, limitações reais, plano de evolução e exercícios práticos.
+
 ## Tecnologias
 
 - React 19 para componentes e estado da interface.
