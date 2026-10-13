@@ -9,5 +9,5 @@
   "display": "standalone",
   "background_color": "#f4f7f6",
   "theme_color": "#0d3d31",
-  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+  "icons": [{ "src": "favicon.svg?v=wind-1", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
 }
