@@ -529,7 +529,7 @@ function FinanceApp({
         <main className="content-scroll min-h-0 w-full flex-1 overflow-y-auto overscroll-y-contain">
           <div
             key={view}
-            className="screen-enter mx-auto w-full max-w-[1600px] space-y-5 px-3 pt-5 pb-32 sm:px-6 lg:space-y-6 lg:px-8 lg:pt-6 lg:pb-10 xl:px-10"
+            className="dashboard-content screen-enter mx-auto w-full max-w-[1600px] space-y-5 px-3 pt-5 pb-32 sm:px-6 lg:px-8 lg:pt-5 lg:pb-10 xl:px-10"
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex w-full min-w-0 items-center justify-between gap-2 sm:w-auto">
@@ -632,7 +632,7 @@ function FinanceApp({
                     className="shrink-0 text-emerald-200"
                   />
                 </section>
-                <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+                <div className="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
                   <Metric
                     label="Saldo das contas"
                     value={money(balance)}
@@ -675,7 +675,7 @@ function FinanceApp({
                       </button>
                     ))}
                 </div>
-                <div className="grid items-start gap-5 xl:grid-cols-2">
+                <div className="grid items-stretch gap-4 xl:grid-cols-2">
                   <Card>
                     <div className="mb-4 flex items-center justify-between">
                       <h2 className="font-extrabold">Atividade recente</h2>
