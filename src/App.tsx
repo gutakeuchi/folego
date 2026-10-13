@@ -461,7 +461,7 @@ function FinanceApp({
         <div className="mb-10 flex items-center gap-3 px-2 text-2xl font-extrabold">
           <span className="grid size-10 place-items-center rounded-xl bg-brand-500">
             <img
-              src={`${import.meta.env.BASE_URL}favicon.svg`}
+              src={`${import.meta.env.BASE_URL}favicon.svg?v=wind-1`}
               alt=""
               className="size-full rounded-[inherit]"
             />
@@ -501,7 +501,7 @@ function FinanceApp({
               className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-600 text-lg font-extrabold text-white lg:hidden"
             >
               <img
-                src={`${import.meta.env.BASE_URL}favicon.svg`}
+                src={`${import.meta.env.BASE_URL}favicon.svg?v=wind-1`}
                 alt=""
                 className="size-full rounded-[inherit]"
               />
