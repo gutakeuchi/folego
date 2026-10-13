@@ -1,0 +1,13 @@
+{
+  "id": "./",
+  "name": "Fôlego — Finanças pessoais",
+  "short_name": "Fôlego",
+  "description": "Organize suas receitas, despesas e metas.",
+  "lang": "pt-BR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f7f6",
+  "theme_color": "#0d3d31",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
