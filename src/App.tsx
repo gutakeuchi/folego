@@ -436,7 +436,7 @@ function FinanceApp({
       </Empty>
     );
   return (
-    <div className="min-h-dvh">
+    <div className="h-dvh overflow-hidden">
       <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col bg-brand-950 p-5 text-white lg:flex">
         <div className="mb-10 flex items-center gap-3 px-2 text-2xl font-extrabold">
           <span className="grid size-10 place-items-center rounded-xl bg-brand-500">
@@ -469,8 +469,8 @@ function FinanceApp({
           </button>
         </div>
       </aside>
-      <div className="lg:pl-60">
-        <header className="sticky top-0 z-20 flex h-20 items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-8">
+      <div className="flex h-full min-h-0 flex-col lg:pl-60">
+        <header className="relative z-20 flex h-20 shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-8">
           <div>
             <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
               {userId ? "SEU ESPAÇO FINANCEIRO" : "DEMONSTRAÇÃO LOCAL"}
@@ -508,7 +508,7 @@ function FinanceApp({
         </header>
         <main
           key={view}
-          className="screen-enter mx-auto max-w-7xl space-y-5 px-3 pt-5 pb-32 sm:px-8 lg:pb-12"
+          className="screen-enter mx-auto min-h-0 w-full max-w-7xl flex-1 space-y-5 overflow-y-auto overscroll-y-contain px-3 pt-5 pb-32 sm:px-8 lg:pb-12"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex w-full min-w-0 items-center justify-between gap-2 sm:w-auto">
