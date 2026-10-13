@@ -4,7 +4,7 @@ import {
   type ButtonHTMLAttributes,
   type ReactNode,
 } from "react";
-import { X, LoaderCircle } from "lucide-react";
+import { X } from "lucide-react";
 import { cn } from "../lib/cn";
 export function LoadingScreen({
   title,
@@ -14,31 +14,59 @@ export function LoadingScreen({
   description: string;
 }) {
   return (
-    <main className="grid min-h-dvh place-items-center bg-canvas p-6">
-      <div
-        role="status"
-        aria-live="polite"
-        className="screen-enter w-full max-w-sm text-center"
-      >
-        <div className="relative mx-auto mb-7 grid size-24 place-items-center">
-          <span
-            className="absolute inset-0 rounded-full border-4 border-brand-100"
-            aria-hidden="true"
-          />
-          <LoaderCircle
-            className="absolute inset-0 size-24 animate-spin text-brand-600"
-            strokeWidth={1.5}
-            aria-hidden="true"
-          />
-          <span
-            className="grid size-12 place-items-center rounded-2xl bg-brand-50 text-2xl font-extrabold text-brand-600"
-            aria-hidden="true"
-          >
-            F
-          </span>
+    <main className="min-h-dvh bg-canvas" aria-busy="true">
+      <p role="status" aria-live="polite" className="sr-only">
+        {title}. {description}
+      </p>
+      <div aria-hidden="true" className="screen-enter mx-auto max-w-7xl">
+        <div className="flex h-20 items-center justify-between border-b border-slate-200 px-4 sm:px-8">
+          <div className="space-y-2">
+            <div className="skeleton h-2 w-28" />
+            <div className="skeleton h-5 w-20" />
+          </div>
+          <div className="flex gap-2">
+            <div className="skeleton size-11 rounded-xl" />
+            <div className="skeleton size-11 rounded-xl" />
+          </div>
         </div>
-        <h1 className="text-xl font-extrabold tracking-tight">{title}</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-500">{description}</p>
+        <div className="space-y-5 px-3 py-5 sm:px-8">
+          <div className="flex items-center justify-between gap-4">
+            <div className="skeleton size-11 rounded-xl" />
+            <div className="skeleton h-4 w-36" />
+            <div className="skeleton size-11 rounded-xl" />
+          </div>
+          <div className="skeleton h-4 w-28" />
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8">
+            <div className="skeleton h-3 w-32" />
+            <div className="skeleton mt-5 h-6 w-44" />
+            <div className="skeleton mt-4 h-3 w-3/4" />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[0, 1].map((item) => (
+              <div
+                key={item}
+                className="rounded-2xl border border-slate-200 bg-white p-6"
+              >
+                <div className="skeleton h-3 w-28" />
+                <div className="skeleton mt-5 h-7 w-36" />
+                <div className="skeleton mt-5 h-3 w-4/5" />
+              </div>
+            ))}
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+            <div className="skeleton mb-6 h-5 w-40" />
+            {[0, 1, 2].map((item) => (
+              <div key={item} className="flex items-center gap-4 py-3">
+                <div className="skeleton size-11 shrink-0 rounded-xl" />
+                <div className="flex-1 space-y-3">
+                  <div className="skeleton h-3 w-2/3" />
+                  <div className="skeleton h-2 w-1/3" />
+                </div>
+                <div className="skeleton h-4 w-16" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </main>
   );
