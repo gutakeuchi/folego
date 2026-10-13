@@ -526,166 +526,366 @@ function FinanceApp({
             </button>
           </div>
         </header>
-        <main
-          key={view}
-          className="screen-enter mx-auto min-h-0 w-full max-w-7xl flex-1 space-y-5 overflow-y-auto overscroll-y-contain px-3 pt-5 pb-32 sm:px-8 lg:pb-12"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex w-full min-w-0 items-center justify-between gap-2 sm:w-auto">
-              <button
-                aria-label="Mês anterior"
-                onClick={() => changeMonth(-1)}
-                className="grid size-11 shrink-0 place-items-center rounded-xl bg-white"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <p className="min-w-0 flex-1 text-center text-sm font-bold capitalize sm:min-w-40">
-                {monthLabel}
-              </p>
-              <button
-                aria-label="Próximo mês"
-                onClick={() => changeMonth(1)}
-                className="grid size-11 shrink-0 place-items-center rounded-xl bg-white"
-              >
-                <ChevronRight size={20} />
-              </button>
-            </div>
-            <Button
-              onClick={() => setEditor({ kind: "entry" })}
-              className="hidden sm:inline-flex"
-            >
-              <Plus size={19} />
-              Adicionar lançamento
-            </Button>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-            <span role="status">{statusText}</span>
-            <div className="flex items-center gap-3">
-              {userId && (
+        <main className="content-scroll min-h-0 w-full flex-1 overflow-y-auto overscroll-y-contain">
+          <div
+            key={view}
+            className="screen-enter mx-auto w-full max-w-[1600px] space-y-5 px-3 pt-5 pb-32 sm:px-6 lg:space-y-6 lg:px-8 lg:pt-6 lg:pb-10 xl:px-10"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex w-full min-w-0 items-center justify-between gap-2 sm:w-auto">
                 <button
-                  onClick={finance.retry}
-                  className="flex min-h-10 items-center gap-2 font-semibold"
+                  aria-label="Mês anterior"
+                  onClick={() => changeMonth(-1)}
+                  className="grid size-11 shrink-0 place-items-center rounded-xl bg-white"
                 >
-                  <RefreshCw size={14} />
-                  Sincronizar
+                  <ChevronLeft size={20} />
                 </button>
-              )}
-            </div>
-          </div>
-          {(error || finance.error) && (
-            <p
-              role="alert"
-              className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
-            >
-              {error || finance.error}
-            </p>
-          )}
-          {finance.status === "conflict" && (
-            <Card>
-              <h2 className="font-bold">
-                Há alterações feitas em outro aparelho
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                Suas alterações locais foram preservadas. Exporte um backup
-                antes de carregar a versão salva no servidor.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-3">
-                <Button onClick={backup}>Exportar minha cópia</Button>
-                <Button
-                  variant="secondary"
-                  onClick={() =>
-                    setConfirm({
-                      title:
-                        "Descartar alterações locais e carregar os registros do servidor?",
-                      action: () => {
-                        void finance
-                          .reloadRemote()
-                          .catch((e) => setError(String(e)));
-                      },
-                    })
-                  }
+                <p className="min-w-0 flex-1 text-center text-sm font-bold capitalize sm:min-w-40">
+                  {monthLabel}
+                </p>
+                <button
+                  aria-label="Próximo mês"
+                  onClick={() => changeMonth(1)}
+                  className="grid size-11 shrink-0 place-items-center rounded-xl bg-white"
                 >
-                  Carregar do servidor
-                </Button>
+                  <ChevronRight size={20} />
+                </button>
               </div>
-            </Card>
-          )}
-          {view === "Início" && (
-            <>
-              <section className="hero-banner flex items-start justify-between gap-4 rounded-3xl bg-linear-to-br from-brand-950 to-brand-700 p-6 text-white sm:p-8">
-                <div>
-                  <p className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-200">
-                    UM PASSO DE CADA VEZ
-                  </p>
-                  <h2 className="mt-3 text-2xl font-extrabold tracking-tight">
-                    Olá, {name}
-                  </h2>
-                  <p className="mt-2 max-w-lg text-sm leading-6 text-emerald-100/80">
-                    {monthly.length
-                      ? "Seu mês está aqui. Acompanhe os registros e ajuste os próximos passos."
-                      : "Seu controle começa com o primeiro lançamento."}
-                  </p>
+              <Button
+                onClick={() => setEditor({ kind: "entry" })}
+                className="hidden sm:inline-flex"
+              >
+                <Plus size={19} />
+                Adicionar lançamento
+              </Button>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+              <span role="status">{statusText}</span>
+              <div className="flex items-center gap-3">
+                {userId && (
+                  <button
+                    onClick={finance.retry}
+                    className="flex min-h-10 items-center gap-2 font-semibold"
+                  >
+                    <RefreshCw size={14} />
+                    Sincronizar
+                  </button>
+                )}
+              </div>
+            </div>
+            {(error || finance.error) && (
+              <p
+                role="alert"
+                className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+              >
+                {error || finance.error}
+              </p>
+            )}
+            {finance.status === "conflict" && (
+              <Card>
+                <h2 className="font-bold">
+                  Há alterações feitas em outro aparelho
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Suas alterações locais foram preservadas. Exporte um backup
+                  antes de carregar a versão salva no servidor.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Button onClick={backup}>Exportar minha cópia</Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      setConfirm({
+                        title:
+                          "Descartar alterações locais e carregar os registros do servidor?",
+                        action: () => {
+                          void finance
+                            .reloadRemote()
+                            .catch((e) => setError(String(e)));
+                        },
+                      })
+                    }
+                  >
+                    Carregar do servidor
+                  </Button>
                 </div>
-                <ShieldCheck size={32} className="shrink-0 text-emerald-200" />
-              </section>
-              <div className="grid gap-4 md:grid-cols-2">
-                <Metric label="Saldo das contas" value={money(balance)} large />
-                <Card>
-                  <Eyebrow>RESUMO DO PERÍODO</Eyebrow>
-                  <div className="mt-5 grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-slate-400">Receitas</p>
-                      <p className="mt-2 text-lg font-extrabold text-brand-600">
-                        {money(summary.income)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400">Despesas</p>
-                      <p className="mt-2 text-lg font-extrabold">
-                        {money(summary.expense)}
-                      </p>
-                    </div>
+              </Card>
+            )}
+            {view === "Início" && (
+              <>
+                <section className="hero-banner flex items-start justify-between gap-4 rounded-3xl bg-linear-to-br from-brand-950 to-brand-700 p-6 text-white sm:p-8">
+                  <div>
+                    <p className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-200">
+                      UM PASSO DE CADA VEZ
+                    </p>
+                    <h2 className="mt-3 text-2xl font-extrabold tracking-tight">
+                      Olá, {name}
+                    </h2>
+                    <p className="mt-2 max-w-lg text-sm leading-6 text-emerald-100/80">
+                      {monthly.length
+                        ? "Seu mês está aqui. Acompanhe os registros e ajuste os próximos passos."
+                        : "Seu controle começa com o primeiro lançamento."}
+                    </p>
                   </div>
-                  <p className="mt-5 border-t border-slate-100 pt-4 text-xs text-slate-500">
-                    {summary.income > 0
-                      ? `${Math.round((summary.balance / summary.income) * 100)}% da renda do período disponível`
-                      : "Cadastre receitas para calcular sua margem do mês."}
-                  </p>
-                </Card>
-              </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {navigation
-                  .filter((n) => n.name !== "Início")
-                  .map(({ name, icon: Icon }) => (
-                    <button
-                      key={name}
-                      onClick={() => setView(name)}
-                      className="flex min-h-20 items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left text-xs font-extrabold shadow-card"
+                  <ShieldCheck
+                    size={32}
+                    className="shrink-0 text-emerald-200"
+                  />
+                </section>
+                <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+                  <Metric
+                    label="Saldo das contas"
+                    value={money(balance)}
+                    large
+                  />
+                  <Card>
+                    <Eyebrow>RESUMO DO PERÍODO</Eyebrow>
+                    <div className="mt-5 grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-slate-400">Receitas</p>
+                        <p className="mt-2 text-lg font-extrabold text-brand-600">
+                          {money(summary.income)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400">Despesas</p>
+                        <p className="mt-2 text-lg font-extrabold">
+                          {money(summary.expense)}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="mt-5 border-t border-slate-100 pt-4 text-xs text-slate-500">
+                      {summary.income > 0
+                        ? `${Math.round((summary.balance / summary.income) * 100)}% da renda do período disponível`
+                        : "Cadastre receitas para calcular sua margem do mês."}
+                    </p>
+                  </Card>
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {navigation
+                    .filter((n) => n.name !== "Início")
+                    .map(({ name, icon: Icon }) => (
+                      <button
+                        key={name}
+                        onClick={() => setView(name)}
+                        className="flex min-h-20 items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left text-xs font-extrabold shadow-card"
+                      >
+                        <Icon size={23} className="shrink-0 text-brand-600" />
+                        {name}
+                      </button>
+                    ))}
+                </div>
+                <div className="grid items-start gap-5 xl:grid-cols-2">
+                  <Card>
+                    <div className="mb-4 flex items-center justify-between">
+                      <h2 className="font-extrabold">Atividade recente</h2>
+                      <button
+                        onClick={() => setView("Lançamentos")}
+                        className="min-h-11 text-xs font-bold text-brand-600"
+                      >
+                        Ver extrato
+                      </button>
+                    </div>
+                    {entryRows(
+                      [...monthly]
+                        .sort((a, b) => b.date.localeCompare(a.date))
+                        .slice(0, 5),
+                    )}
+                  </Card>
+                  <Card>
+                    <h2 className="mb-5 font-extrabold">
+                      Limites por categoria
+                    </h2>
+                    {data.budgets.length ? (
+                      data.budgets.map((b) => (
+                        <BudgetLine
+                          key={b.id}
+                          budget={b}
+                          spent={spent(b.category)}
+                          money={money}
+                          onEdit={() =>
+                            setEditor({ kind: "budget", budget: b })
+                          }
+                        />
+                      ))
+                    ) : (
+                      <Empty>
+                        Defina um limite em Planejamento para acompanhar seus
+                        gastos.
+                      </Empty>
+                    )}
+                  </Card>
+                </div>
+              </>
+            )}
+            {view === "Lançamentos" && (
+              <>
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                  <Metric label="Entradas" value={money(summary.income)} />
+                  <Metric label="Saídas" value={money(summary.expense)} />
+                  <Metric
+                    label="Saldo do período"
+                    value={money(summary.balance)}
+                    className="col-span-2 md:col-span-1"
+                  />
+                </div>
+                <Card>
+                  <div className="mb-3 flex flex-col gap-2 sm:flex-row">
+                    <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 px-3">
+                      <Search size={18} className="shrink-0 text-slate-400" />
+                      <input
+                        aria-label="Buscar lançamento"
+                        placeholder="Buscar lançamento"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        className="min-h-12 w-full bg-transparent text-sm outline-none"
+                      />
+                    </label>
+                    <select
+                      aria-label="Filtrar por tipo"
+                      value={filter}
+                      onChange={(e) => setFilter(e.target.value)}
+                      className="field sm:max-w-40"
                     >
-                      <Icon size={23} className="shrink-0 text-brand-600" />
-                      {name}
-                    </button>
+                      <option value="">Todos</option>
+                      <option value="income">Receitas</option>
+                      <option value="expense">Despesas</option>
+                    </select>
+                  </div>
+                  <div className="mb-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                    <Button
+                      variant="secondary"
+                      className="col-span-2"
+                      onClick={() => {
+                        setOfxAccount(data.accounts[0]?.id ?? "");
+                        setOfxRows([]);
+                      }}
+                    >
+                      Importar OFX
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      className="min-w-0 px-3 sm:px-4"
+                      onClick={() => csvInput.current?.click()}
+                    >
+                      <Upload size={17} />
+                      Importar
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      className="min-w-0 px-3 sm:px-4"
+                      onClick={() =>
+                        download(
+                          exportEntries(data),
+                          "text/csv;charset=utf-8",
+                          "folego-lancamentos.csv",
+                        )
+                      }
+                    >
+                      <Download size={17} />
+                      Exportar
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      className="col-span-2 min-w-0 px-3 sm:px-4"
+                      onClick={() => act(generateRecurring)}
+                    >
+                      <RefreshCw size={17} />
+                      Gerar recorrências
+                    </Button>
+                  </div>
+                  {entryRows(visible)}
+                </Card>
+              </>
+            )}
+            {view === "Contas" && (
+              <>
+                <div className="flex items-center justify-between">
+                  <h2 className="font-extrabold">Suas contas</h2>
+                  <Button onClick={() => setEditor({ kind: "account" })}>
+                    <Plus size={18} />
+                    Nova conta
+                  </Button>
+                </div>
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))] gap-4">
+                  {data.accounts.map((a) => (
+                    <Card key={a.id}>
+                      <div className="flex items-center justify-between">
+                        <WalletCards size={24} className="text-brand-600" />
+                        <button
+                          aria-label={`Editar conta ${a.name}`}
+                          onClick={() =>
+                            setEditor({ kind: "account", account: a })
+                          }
+                          className="grid size-11 place-items-center rounded-xl hover:bg-slate-50"
+                        >
+                          <Pencil size={17} />
+                        </button>
+                      </div>
+                      <h3 className="mt-3 font-bold">{a.name}</h3>
+                      <p className="mt-3 text-2xl font-extrabold tabular-nums">
+                        {money(
+                          a.opening +
+                            totals(
+                              data.entries.filter((e) => e.accountId === a.id),
+                            ).balance,
+                        )}
+                      </p>
+                      <p className="mt-2 text-xs text-slate-400">
+                        Saldo inicial + todos os lançamentos desta conta
+                      </p>
+                    </Card>
                   ))}
-              </div>
-              <div className="grid items-start gap-5 xl:grid-cols-2">
+                </div>
                 <Card>
-                  <div className="mb-4 flex items-center justify-between">
-                    <h2 className="font-extrabold">Atividade recente</h2>
-                    <button
-                      onClick={() => setView("Lançamentos")}
-                      className="min-h-11 text-xs font-bold text-brand-600"
+                  <h2 className="font-extrabold">Seus dados</h2>
+                  <Button
+                    variant="secondary"
+                    className="mt-4"
+                    onClick={legacyImport}
+                  >
+                    Importar versão antiga
+                  </Button>
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    Mantenha uma cópia dos registros. Um backup inclui contas,
+                    lançamentos, limites e metas.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <Button variant="secondary" onClick={backup}>
+                      <Download size={18} />
+                      Backup completo
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => backupInput.current?.click()}
                     >
-                      Ver extrato
-                    </button>
+                      <Upload size={18} />
+                      Restaurar backup
+                    </Button>
                   </div>
-                  {entryRows(
-                    [...monthly]
-                      .sort((a, b) => b.date.localeCompare(a.date))
-                      .slice(0, 5),
-                  )}
                 </Card>
+              </>
+            )}
+            {view === "Planejamento" && (
+              <>
+                <div className="flex items-center justify-between">
+                  <h2 className="font-extrabold">Orçamento do mês</h2>
+                  <Button onClick={() => setEditor({ kind: "budget" })}>
+                    <Plus size={18} />
+                    Novo limite
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Metric
+                    label="Limites cadastrados"
+                    value={money(budgetTotal)}
+                  />
+                  <Metric
+                    label="Gasto do período"
+                    value={money(summary.expense)}
+                  />
+                </div>
                 <Card>
-                  <h2 className="mb-5 font-extrabold">Limites por categoria</h2>
                   {data.budgets.length ? (
                     data.budgets.map((b) => (
                       <BudgetLine
@@ -697,277 +897,90 @@ function FinanceApp({
                       />
                     ))
                   ) : (
-                    <Empty>
-                      Defina um limite em Planejamento para acompanhar seus
-                      gastos.
-                    </Empty>
+                    <Card className="text-center">
+                      <Empty>
+                        Defina quanto deseja gastar em cada categoria.
+                      </Empty>
+                      <Button onClick={() => setEditor({ kind: "budget" })}>
+                        <Plus size={18} />
+                        Criar primeiro limite
+                      </Button>
+                    </Card>
                   )}
                 </Card>
-              </div>
-            </>
-          )}
-          {view === "Lançamentos" && (
-            <>
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-                <Metric label="Entradas" value={money(summary.income)} />
-                <Metric label="Saídas" value={money(summary.expense)} />
-                <Metric
-                  label="Saldo do período"
-                  value={money(summary.balance)}
-                  className="col-span-2 md:col-span-1"
-                />
-              </div>
-              <Card>
-                <div className="mb-3 flex flex-col gap-2 sm:flex-row">
-                  <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 px-3">
-                    <Search size={18} className="shrink-0 text-slate-400" />
-                    <input
-                      aria-label="Buscar lançamento"
-                      placeholder="Buscar lançamento"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      className="min-h-12 w-full bg-transparent text-sm outline-none"
-                    />
-                  </label>
-                  <select
-                    aria-label="Filtrar por tipo"
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                    className="field sm:max-w-40"
-                  >
-                    <option value="">Todos</option>
-                    <option value="income">Receitas</option>
-                    <option value="expense">Despesas</option>
-                  </select>
-                </div>
-                <div className="mb-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                  <Button
-                    variant="secondary"
-                    className="col-span-2"
-                    onClick={() => {
-                      setOfxAccount(data.accounts[0]?.id ?? "");
-                      setOfxRows([]);
-                    }}
-                  >
-                    Importar OFX
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    className="min-w-0 px-3 sm:px-4"
-                    onClick={() => csvInput.current?.click()}
-                  >
-                    <Upload size={17} />
-                    Importar
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    className="min-w-0 px-3 sm:px-4"
-                    onClick={() =>
-                      download(
-                        exportEntries(data),
-                        "text/csv;charset=utf-8",
-                        "folego-lancamentos.csv",
-                      )
-                    }
-                  >
-                    <Download size={17} />
-                    Exportar
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    className="col-span-2 min-w-0 px-3 sm:px-4"
-                    onClick={() => act(generateRecurring)}
-                  >
-                    <RefreshCw size={17} />
-                    Gerar recorrências
-                  </Button>
-                </div>
-                {entryRows(visible)}
-              </Card>
-            </>
-          )}
-          {view === "Contas" && (
-            <>
-              <div className="flex items-center justify-between">
-                <h2 className="font-extrabold">Suas contas</h2>
-                <Button onClick={() => setEditor({ kind: "account" })}>
-                  <Plus size={18} />
-                  Nova conta
-                </Button>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {data.accounts.map((a) => (
-                  <Card key={a.id}>
-                    <div className="flex items-center justify-between">
-                      <WalletCards size={24} className="text-brand-600" />
-                      <button
-                        aria-label={`Editar conta ${a.name}`}
-                        onClick={() =>
-                          setEditor({ kind: "account", account: a })
-                        }
-                        className="grid size-11 place-items-center rounded-xl hover:bg-slate-50"
-                      >
-                        <Pencil size={17} />
-                      </button>
-                    </div>
-                    <h3 className="mt-3 font-bold">{a.name}</h3>
-                    <p className="mt-3 text-2xl font-extrabold tabular-nums">
-                      {money(
-                        a.opening +
-                          totals(
-                            data.entries.filter((e) => e.accountId === a.id),
-                          ).balance,
-                      )}
-                    </p>
-                    <p className="mt-2 text-xs text-slate-400">
-                      Saldo inicial + todos os lançamentos desta conta
-                    </p>
-                  </Card>
-                ))}
-              </div>
-              <Card>
-                <h2 className="font-extrabold">Seus dados</h2>
-                <Button
-                  variant="secondary"
-                  className="mt-4"
-                  onClick={legacyImport}
-                >
-                  Importar versão antiga
-                </Button>
-                <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Mantenha uma cópia dos registros. Um backup inclui contas,
-                  lançamentos, limites e metas.
+                <p className="text-xs leading-5 text-slate-500">
+                  Os limites são mensais e se repetem nos períodos selecionados.
+                  O gasto considera a categoria de cada despesa.
                 </p>
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <Button variant="secondary" onClick={backup}>
-                    <Download size={18} />
-                    Backup completo
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => backupInput.current?.click()}
-                  >
-                    <Upload size={18} />
-                    Restaurar backup
+              </>
+            )}
+            {view === "Metas" && (
+              <>
+                <div className="flex items-center justify-between">
+                  <h2 className="font-extrabold">Seus próximos passos</h2>
+                  <Button onClick={() => setEditor({ kind: "goal" })}>
+                    <Plus size={18} />
+                    Criar meta
                   </Button>
                 </div>
-              </Card>
-            </>
-          )}
-          {view === "Planejamento" && (
-            <>
-              <div className="flex items-center justify-between">
-                <h2 className="font-extrabold">Orçamento do mês</h2>
-                <Button onClick={() => setEditor({ kind: "budget" })}>
-                  <Plus size={18} />
-                  Novo limite
-                </Button>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Metric
-                  label="Limites cadastrados"
-                  value={money(budgetTotal)}
-                />
-                <Metric
-                  label="Gasto do período"
-                  value={money(summary.expense)}
-                />
-              </div>
-              <Card>
-                {data.budgets.length ? (
-                  data.budgets.map((b) => (
-                    <BudgetLine
-                      key={b.id}
-                      budget={b}
-                      spent={spent(b.category)}
-                      money={money}
-                      onEdit={() => setEditor({ kind: "budget", budget: b })}
-                    />
-                  ))
-                ) : (
-                  <Card className="text-center">
-                    <Empty>
-                      Defina quanto deseja gastar em cada categoria.
-                    </Empty>
-                    <Button onClick={() => setEditor({ kind: "budget" })}>
-                      <Plus size={18} />
-                      Criar primeiro limite
-                    </Button>
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))] gap-4">
+                  {data.goals.map((g) => (
+                    <Card key={g.id}>
+                      <div className="flex items-center justify-between">
+                        <span className="grid size-12 place-items-center rounded-2xl bg-brand-50 text-brand-600">
+                          <Target size={24} />
+                        </span>
+                        <button
+                          aria-label={`Editar meta ${g.name}`}
+                          onClick={() => setEditor({ kind: "goal", goal: g })}
+                          className="grid size-11 place-items-center rounded-xl hover:bg-slate-50"
+                        >
+                          <Pencil size={17} />
+                        </button>
+                      </div>
+                      <h3 className="mt-5 text-lg font-extrabold">{g.name}</h3>
+                      <p className="mt-3 text-2xl font-extrabold">
+                        {money(g.saved)}
+                      </p>
+                      <p className="mt-2 text-xs text-slate-400">
+                        de {money(g.target)} · até{" "}
+                        {new Date(g.deadline + "T12:00:00").toLocaleDateString(
+                          "pt-BR",
+                        )}
+                      </p>
+                      <Progress value={(g.saved / g.target) * 100} />
+                      <Button
+                        variant="secondary"
+                        className="mt-5 w-full"
+                        onClick={() =>
+                          setEditor({ kind: "contribution", goal: g })
+                        }
+                      >
+                        Registrar aporte
+                      </Button>
+                    </Card>
+                  ))}
+                </div>
+                {!data.goals.length && (
+                  <Card>
+                    <Card className="text-center">
+                      <Empty>
+                        Transforme um objetivo em um plano de economia.
+                      </Empty>
+                      <Button onClick={() => setEditor({ kind: "goal" })}>
+                        <Target size={18} />
+                        Criar primeira meta
+                      </Button>
+                    </Card>
                   </Card>
                 )}
-              </Card>
-              <p className="text-xs leading-5 text-slate-500">
-                Os limites são mensais e se repetem nos períodos selecionados. O
-                gasto considera a categoria de cada despesa.
-              </p>
-            </>
-          )}
-          {view === "Metas" && (
-            <>
-              <div className="flex items-center justify-between">
-                <h2 className="font-extrabold">Seus próximos passos</h2>
-                <Button onClick={() => setEditor({ kind: "goal" })}>
-                  <Plus size={18} />
-                  Criar meta
-                </Button>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {data.goals.map((g) => (
-                  <Card key={g.id}>
-                    <div className="flex items-center justify-between">
-                      <span className="grid size-12 place-items-center rounded-2xl bg-brand-50 text-brand-600">
-                        <Target size={24} />
-                      </span>
-                      <button
-                        aria-label={`Editar meta ${g.name}`}
-                        onClick={() => setEditor({ kind: "goal", goal: g })}
-                        className="grid size-11 place-items-center rounded-xl hover:bg-slate-50"
-                      >
-                        <Pencil size={17} />
-                      </button>
-                    </div>
-                    <h3 className="mt-5 text-lg font-extrabold">{g.name}</h3>
-                    <p className="mt-3 text-2xl font-extrabold">
-                      {money(g.saved)}
-                    </p>
-                    <p className="mt-2 text-xs text-slate-400">
-                      de {money(g.target)} · até{" "}
-                      {new Date(g.deadline + "T12:00:00").toLocaleDateString(
-                        "pt-BR",
-                      )}
-                    </p>
-                    <Progress value={(g.saved / g.target) * 100} />
-                    <Button
-                      variant="secondary"
-                      className="mt-5 w-full"
-                      onClick={() =>
-                        setEditor({ kind: "contribution", goal: g })
-                      }
-                    >
-                      Registrar aporte
-                    </Button>
-                  </Card>
-                ))}
-              </div>
-              {!data.goals.length && (
-                <Card>
-                  <Card className="text-center">
-                    <Empty>
-                      Transforme um objetivo em um plano de economia.
-                    </Empty>
-                    <Button onClick={() => setEditor({ kind: "goal" })}>
-                      <Target size={18} />
-                      Criar primeira meta
-                    </Button>
-                  </Card>
-                </Card>
-              )}
-              <p className="text-xs leading-5 text-slate-500">
-                Aportes atualizam o progresso da meta. Não movimentam
-                automaticamente o saldo de uma conta.
-              </p>
-            </>
-          )}
+                <p className="text-xs leading-5 text-slate-500">
+                  Aportes atualizam o progresso da meta. Não movimentam
+                  automaticamente o saldo de uma conta.
+                </p>
+              </>
+            )}
+          </div>
         </main>
       </div>
       <nav
