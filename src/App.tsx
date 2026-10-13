@@ -460,7 +460,11 @@ function FinanceApp({
       <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col bg-brand-950 p-5 text-white lg:flex">
         <div className="mb-10 flex items-center gap-3 px-2 text-2xl font-extrabold">
           <span className="grid size-10 place-items-center rounded-xl bg-brand-500">
-            F
+            <img
+              src={`${import.meta.env.BASE_URL}favicon.svg`}
+              alt=""
+              className="size-full rounded-[inherit]"
+            />
           </span>
           Fôlego
         </div>
@@ -496,7 +500,11 @@ function FinanceApp({
               aria-label="Fôlego"
               className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-600 text-lg font-extrabold text-white lg:hidden"
             >
-              F
+              <img
+                src={`${import.meta.env.BASE_URL}favicon.svg`}
+                alt=""
+                className="size-full rounded-[inherit]"
+              />
             </span>
             <div className="min-w-0">
               <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 max-[400px]:hidden">

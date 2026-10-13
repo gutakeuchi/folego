@@ -118,7 +118,11 @@ export function AuthScreen({
           className="mb-8 flex items-center justify-center gap-3 text-2xl font-extrabold"
         >
           <span className="grid size-11 place-items-center rounded-2xl bg-brand-600 text-white">
-            F
+            <img
+              src={`${import.meta.env.BASE_URL}favicon.svg`}
+              alt=""
+              className="size-full rounded-[inherit]"
+            />
           </span>
           Fôlego
         </a>

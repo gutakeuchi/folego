@@ -1,1 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#102a22"/><path d="M10 8h13v4h-8v3h7v4h-7v6h-5z" fill="#65d6ac"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <title>Fôlego</title>
+  <rect width="128" height="128" rx="34" fill="#103c30"/>
+  <path d="M43 94V50c0-14 10-23 24-23h26" fill="none" stroke="#65d6ac" stroke-width="14" stroke-linecap="round"/>
+  <path d="M44 66h21c13 0 23-5 28-14" fill="none" stroke="#65d6ac" stroke-width="14" stroke-linecap="round"/>
+</svg>
