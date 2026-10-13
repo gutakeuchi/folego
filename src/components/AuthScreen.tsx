@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowRight, ShieldCheck, Eye, EyeOff, KeyRound } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { Button, Card } from "./ui";
 export function AuthScreen({
@@ -12,6 +12,33 @@ export function AuthScreen({
   onRecovered: () => void;
 }) {
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
+  const [showPassword, setShowPassword] = useState(false);
+  const [suggestedPassword, setSuggestedPassword] = useState("");
+  function suggestPassword() {
+    const alphabet =
+      "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*";
+    const randomIndex = (length: number) => {
+      const limit = 256 - (256 % length);
+      const byte = new Uint8Array(1);
+      do {
+        crypto.getRandomValues(byte);
+      } while (byte[0] >= limit);
+      return byte[0] % length;
+    };
+    let result = "";
+    do {
+      result = Array.from(
+        { length: 20 },
+        () => alphabet[randomIndex(alphabet.length)],
+      ).join("");
+    } while (
+      !/[A-Z]/.test(result) ||
+      !/[a-z]/.test(result) ||
+      !/[0-9]/.test(result) ||
+      !/[!@#$%&*]/.test(result)
+    );
+    setSuggestedPassword(result);
+  }
   const [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
     [name, setName] = useState(""),
@@ -127,28 +154,91 @@ export function AuthScreen({
                 </label>
               )}
               {(mode !== "forgot" || recovery) && (
-                <label className="label">
-                  Senha
-                  <input
-                    className="field"
-                    type="password"
-                    required
-                    minLength={recovery || mode === "signup" ? 12 : 1}
-                    maxLength={128}
-                    autoComplete={
-                      mode === "login" && !recovery
-                        ? "current-password"
-                        : "new-password"
-                    }
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                  {(mode === "signup" || recovery) && (
-                    <span className="text-xs font-normal">
-                      Use pelo menos 12 caracteres.
+                <div className="space-y-3">
+                  <label className="label">
+                    Senha
+                    <span className="relative block">
+                      <input
+                        className="field pr-14"
+                        type={showPassword ? "text" : "password"}
+                        placeholder={
+                          mode === "login" && !recovery
+                            ? "Digite sua senha"
+                            : "Crie uma senha forte"
+                        }
+                        required
+                        minLength={recovery || mode === "signup" ? 12 : 1}
+                        maxLength={128}
+                        autoComplete={
+                          mode === "login" && !recovery
+                            ? "current-password"
+                            : "new-password"
+                        }
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        aria-label={
+                          showPassword ? "Ocultar senha" : "Mostrar senha"
+                        }
+                        aria-pressed={showPassword}
+                        onClick={() => setShowPassword((value) => !value)}
+                        className="absolute inset-y-0 right-1 grid w-12 place-items-center rounded-xl text-slate-500"
+                      >
+                        {showPassword ? (
+                          <EyeOff size={20} />
+                        ) : (
+                          <Eye size={20} />
+                        )}
+                      </button>
                     </span>
+                    {(mode === "signup" || recovery) && (
+                      <span className="text-xs font-normal">
+                        Use pelo menos 12 caracteres.
+                      </span>
+                    )}
+                  </label>
+                  {(mode === "signup" || recovery) && (
+                    <div className="rounded-xl border border-slate-200 bg-brand-50 p-3 text-xs">
+                      <button
+                        type="button"
+                        onClick={suggestPassword}
+                        className="flex min-h-11 items-center gap-2 font-bold text-brand-600"
+                      >
+                        <KeyRound size={17} />
+                        {suggestedPassword
+                          ? "Gerar outra sugestão"
+                          : "Sugerir senha forte"}
+                      </button>
+                      {suggestedPassword && (
+                        <>
+                          <code className="block break-all rounded-lg border border-slate-200 p-3 text-sm text-ink">
+                            {suggestedPassword}
+                          </code>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            className="mt-2 w-full"
+                            onClick={() => {
+                              setPassword(suggestedPassword);
+                              setSuggestedPassword("");
+                              setShowPassword(false);
+                            }}
+                          >
+                            Usar esta senha
+                          </Button>
+                          <p className="mt-2 leading-5 text-slate-600">
+                            Guarde a senha no gerenciador do navegador antes de
+                            concluir. A sugestão é gerada neste aparelho e só é
+                            enviada ao serviço de autenticação ao enviar o
+                            formulário.
+                          </p>
+                        </>
+                      )}
+                    </div>
                   )}
-                </label>
+                </div>
               )}
               {error && (
                 <p role="alert" className="text-sm text-red-700">
@@ -178,6 +268,9 @@ export function AuthScreen({
                     type="button"
                     onClick={() => {
                       setMode(mode === "signup" ? "login" : "signup");
+                      setPassword("");
+                      setSuggestedPassword("");
+                      setShowPassword(false);
                       setError("");
                       setMessage("");
                     }}
@@ -188,6 +281,9 @@ export function AuthScreen({
                     type="button"
                     onClick={() => {
                       setMode(mode === "forgot" ? "login" : "forgot");
+                      setPassword("");
+                      setSuggestedPassword("");
+                      setShowPassword(false);
                       setError("");
                       setMessage("");
                     }}
