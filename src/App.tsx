@@ -475,21 +475,21 @@ function FinanceApp({
         </header>
         <main className="mx-auto max-w-7xl space-y-5 px-3 pt-5 pb-32 sm:px-8 lg:pb-12">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
+            <div className="flex w-full min-w-0 items-center justify-between gap-2 sm:w-auto">
               <button
                 aria-label="Mês anterior"
                 onClick={() => changeMonth(-1)}
-                className="grid size-11 place-items-center rounded-xl bg-white"
+                className="grid size-11 shrink-0 place-items-center rounded-xl bg-white"
               >
                 <ChevronLeft size={20} />
               </button>
-              <p className="min-w-40 text-center text-sm font-bold capitalize">
+              <p className="min-w-0 flex-1 text-center text-sm font-bold capitalize sm:min-w-40">
                 {monthLabel}
               </p>
               <button
                 aria-label="Próximo mês"
                 onClick={() => changeMonth(1)}
-                className="grid size-11 place-items-center rounded-xl bg-white"
+                className="grid size-11 shrink-0 place-items-center rounded-xl bg-white"
               >
                 <ChevronRight size={20} />
               </button>
@@ -687,9 +687,10 @@ function FinanceApp({
                     <option value="expense">Despesas</option>
                   </select>
                 </div>
-                <div className="mb-3 flex flex-wrap gap-2">
+                <div className="mb-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                   <Button
                     variant="secondary"
+                    className="min-w-0 px-3 sm:px-4"
                     onClick={() => csvInput.current?.click()}
                   >
                     <Upload size={17} />
@@ -697,6 +698,7 @@ function FinanceApp({
                   </Button>
                   <Button
                     variant="secondary"
+                    className="min-w-0 px-3 sm:px-4"
                     onClick={() =>
                       download(
                         exportEntries(data),
@@ -710,6 +712,7 @@ function FinanceApp({
                   </Button>
                   <Button
                     variant="secondary"
+                    className="col-span-2 min-w-0 px-3 sm:px-4"
                     onClick={() => act(generateRecurring)}
                   >
                     <RefreshCw size={17} />
