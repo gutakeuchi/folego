@@ -1,6 +1,31 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { parseOfx, possibleDuplicate } from "../src/ofx.ts";
+test("OFX recusa extrato sem transações, múltiplas contas e correções", async () => {
+  for (const input of [
+    "<OFX><CURDEF>BRL</OFX>",
+    statement().replace("<STMTRS>", "<STMTRS><STMTRS>"),
+    statement().replace("<FITID>", "<CORRECTFITID>old<FITID>"),
+  ])
+    await assert.rejects(() => parseOfx(input, "main"));
+});
+test("OFX identifica separadamente contas bancárias distintas", async () => {
+  const a = (await parseOfx(statement(), "main"))[0];
+  const b = (
+    await parseOfx(statement().replace("<ACCTID>123", "<ACCTID>456"), "main")
+  )[0];
+  assert.notEqual(a.id, b.id);
+});
+test("OFX não confunde receitas e despesas no detector aproximado", async () => {
+  const a = (await parseOfx(statement(), "main"))[0];
+  assert.equal(possibleDuplicate(a, { ...a, type: "income" }), false);
+  assert.equal(possibleDuplicate(a, { ...a, accountId: "other" }), false);
+});
+test("OFX admite vírgula decimal e rejeita zero e valor excessivo", async () => {
+  assert.equal((await parseOfx(statement("-0,01"), "main"))[0].cents, 1);
+  for (const amount of ["0", "1000000001", "NaN", "1e3"])
+    await assert.rejects(() => parseOfx(statement(amount), "main"));
+});
 const statement = (amount = "-12.34", date = "20261013", fitid = "abc") =>
   `<OFX><STMTRS><CURDEF>BRL<BANKID>001<ACCTID>123<BANKTRANLIST><STMTTRN><DTPOSTED>${date}<TRNAMT>${amount}<FITID>${fitid}<NAME>Mercado &amp; Cia</STMTTRN></BANKTRANLIST></STMTRS></OFX>`;
 test("OFX SGML converte sinal, centavos, entidades e mantém identidade estável", async () => {

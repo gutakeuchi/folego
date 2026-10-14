@@ -4,6 +4,8 @@ Aplicativo web responsivo com React, TypeScript, Tailwind CSS 4 e backend Supaba
 
 ## Documentação
 
+- [Testes automatizados, cobertura e homologação pendente](docs/TESTES-E-HOMOLOGACAO.md).
+
 - [Guia atual completo: implementação, conceitos e roteiro de estudo](docs/GUIA-ATUAL-DO-FOLEGO.md).
 
 - [Tailwind, backend e configuração atual](docs/TAILWIND-E-BACKEND.md).

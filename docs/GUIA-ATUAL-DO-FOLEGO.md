@@ -194,7 +194,7 @@ Para autenticação em produção, conferir no Supabase Site URL e redirects do 
 Verificações realizadas durante as entregas:
 
 - Typecheck e builds de produção.
-- 14 testes automatizados: regras financeiras, CSV, migração, OFX e banco/RLS.
+- A suíte inicial tinha 14 testes. Em 14/10/2026 foi ampliada para 47 testes aprovados; consulte [cobertura e limites da homologação](TESTES-E-HOMOLOGACAO.md). Inclui regras financeiras, CSV, migração, OFX, banco/RLS, autenticação simulada, sincronização e cache PWA.
 - Consultas remotas confirmando RLS e execução do Security Advisor.
 - Conferências pontuais no navegador em mobile e desktop, incluindo largura, rolagem e contraste dos campos.
 - Verificação dos builds publicados e recursos atualizados no GitHub Pages.
